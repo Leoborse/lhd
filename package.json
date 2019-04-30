@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/Leoborse/yahd/issues"
   },
-  "homepage": "https://github.com/Leoborse/yahd#readme"
+  "homepage": "https://github.com/Leoborse/yahd#readme",
+  "dependencies": {
+    "file-type": "^10.11.0",
+    "mime-types": "^2.1.24"
+  }
 }
