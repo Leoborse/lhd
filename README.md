@@ -1,2 +1,2 @@
-# yahd
-Another Light HTTP dispatcher
+# LHD
+(Another) Light HTTP(s) dispatcher
