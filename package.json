@@ -2,13 +2,13 @@
   "name": "lhd",
   "version": "0.0.1",
   "description": "(Another) Light HTTP(s) Dispatcher",
-  "main": "src/httpdispatcher.js",
+  "main": "src/lhd.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Leoborse/yahd.git"
+    "url": "git+https://github.com/Leoborse/lhd.git"
   },
   "keywords": [
     "HTTP",
@@ -17,9 +17,9 @@
   "author": "Leonardo Borselli",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Leoborse/yahd/issues"
+    "url": "https://github.com/Leoborse/lhd/issues"
   },
-  "homepage": "https://github.com/Leoborse/yahd#readme",
+  "homepage": "https://github.com/Leoborse/lhd#readme",
   "dependencies": {
     "file-type": "^10.11.0",
     "mime-types": "^2.1.24"
