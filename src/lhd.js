@@ -8,9 +8,10 @@ const querystring = require('querystring');
 const urlparser   = require('url');
 
 var HttpDispatcher = function(configurazione) {
-  this.cfg = configurazione;
+  this.cfg = typeof configurazione != 'undefined' ? configurazione : {};
   this.Agent = https.Agent;
   cfg = configurazione;
+  if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
   cfg.log({
     status: "Info",
     name: "Descrizione servizio",
@@ -306,9 +307,10 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
    cb = dat;
    data = null;
   }
+  opt.headers['Content-Length'] = data.length;
   const proto = opt.protocol == 'https:' ? https : http ;
   const r = proto.request(opt, (res) => {
-    if ( res.statusCode == 200 ) {
+    if ( res.statusCode >= 200 && res.statusCode <= 299 ) {
       var data = "";
       res
       .on('data', (d) => {

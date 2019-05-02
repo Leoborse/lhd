@@ -1,2 +1,2 @@
 # LHD
-(Another) Light HTTP(s) dispatcher
+(Another) Light HTTP(s) Dispatcher
