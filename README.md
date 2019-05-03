@@ -42,6 +42,12 @@ npm install --save lhd
     dis.request(options,data,callBack); // data is optional
 ```
 
+where:
+
+options.protocols defines the protocol to be used.
+
+options is defined in nodejs http(s) class.
+
 
 ### Http Server
 
