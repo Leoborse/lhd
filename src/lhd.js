@@ -12,13 +12,18 @@ var HttpDispatcher = function(configurazione) {
   this.Agent = https.Agent;
   cfg = configurazione;
   if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
+  var lcfg = {};
+  try {
+    lcfg = fs.readFileSync( 'node_modules/lhd/package.json' );
+  } catch(e) {
+  }
   cfg.log({
     status: "Info",
-    name: "Descrizione servizio",
+    name: "Service description",
     value: {
-      nome: cfg.name,
-      versione: cfg.version,
-      ambiente: cfg.ambiente||'Sconosciuto',
+      name: cfg.name||lcfg.name,
+      version: cfg.version||lcfg.version,
+      environment: cfg.ambiente||'Developing',
     }
   });
 
@@ -43,7 +48,7 @@ var HttpDispatcher = function(configurazione) {
   
   this.auth = function(req, res) {
     req.user = {
-      sub: "Anonimo"
+      sub: "Anonimous"
     };
     if ( ! req.headers ) return;
     if ( req.headers['authorization'] ) {
@@ -74,7 +79,7 @@ var HttpDispatcher = function(configurazione) {
     }
     cfg.log({
       status: "Info",
-      name: "Prefissi soppressi",
+      name: "Removed prefix(es)",
       value: config.apiPaths
     });
   }
@@ -185,7 +190,7 @@ HttpDispatcher.prototype.start = function(cfg) {
     if ( this.listening ) {
       cfg.log({
         status: "Info",
-        name: "HttpDispatcher listener",
+        name: "lhd listener",
         value: {
           server: cfg.server,
           services: cfg.dispatcher.services
