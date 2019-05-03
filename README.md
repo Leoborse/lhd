@@ -28,15 +28,15 @@ npm install --save lhd
     const dis = new lhd();
     
     const options = {
-      "protocol": "https:",
-      "host": "www.servizi.toscana.it",
-      "port": 443,
-      "path": "/index.html",
-      "method": "POST",
-      "headers": {
-        "Content-Type": "application/json"
+      protocol: "https:",
+      host: "www.servizi.toscana.it",
+      port: 443,
+      path: "/index.html",
+      method: "POST",
+      headers: {
+        Content-Type: "application/json"
       },
-      "rejectUnauthorized": true
+      rejectUnauthorized": true
     }
     var data = 'Samo data to send ...';
     dis.request(options,data,callBack); // data is optional
