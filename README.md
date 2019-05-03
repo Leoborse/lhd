@@ -38,7 +38,7 @@ npm install --save lhd
       },
       rejectUnauthorized": true
     }
-    var data = 'Samo data to send ...';
+    var data = 'Some data to send ...';
     dis.request(options,data,callBack); // data is optional
 ```
 
