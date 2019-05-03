@@ -1,7 +1,7 @@
 # LHD
 (Another) Light HTTP(s) Dispatcher
 
-LHD is an complete http(s) dispatcher based on [`HttpDispatcher`](https://github.com/alberto-bottarini/httpdispatcher)
+LHD is a light http(s) dispatcher based on [`HttpDispatcher`](https://github.com/alberto-bottarini/httpdispatcher)
 
 LHD allows developer to have a clear dispatcher for dynamic pages and static resources. Classes http.ServerRequest and http.ServerResponse earns new params property containing a map of received HTTP parameters.
 
