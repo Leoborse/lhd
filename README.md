@@ -29,12 +29,12 @@ npm install --save lhd
     
     const options = {
       protocol: 'https:',
-      host: "www.servizi.toscana.it",
+      host: 'www.servizi.toscana.it',
       port: 443,
-      path: "/index.html",
-      method: "POST",
+      path: '/index.html',
+      method: 'POST',
       headers: {
-        Content-Type: "application/json"
+        Content-Type: 'application/json'
       },
       rejectUnauthorized: true
     }
