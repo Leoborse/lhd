@@ -12,17 +12,18 @@ var HttpDispatcher = function(configurazione) {
   this.Agent = https.Agent;
   cfg = configurazione;
   if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
-  var lcfg = {};
   try {
-    lcfg = fs.readFileSync( 'node_modules/lhd/package.json' );
+    var lcfg = JSON.parse(fs.readFileSync( 'node_modules/lhd/package.json' ));
+    cfg.name = lcfg.name;
+    cfg.version = lcfg.version;
   } catch(e) {
   }
   cfg.log({
     status: "Info",
     name: "Service description",
     value: {
-      name: cfg.name||lcfg.name,
-      version: cfg.version||lcfg.version,
+      name: cfg.name,
+      version: cfg.version,
       environment: cfg.ambiente||'Developing',
     }
   });
