@@ -28,7 +28,7 @@ npm install --save lhd
     const dis = new lhd();
     
     const options = {
-      protocol: "https:",
+      protocol: 'https:',
       host: "www.servizi.toscana.it",
       port: 443,
       path: "/index.html",
@@ -36,7 +36,7 @@ npm install --save lhd
       headers: {
         Content-Type: "application/json"
       },
-      rejectUnauthorized": true
+      rejectUnauthorized: true
     }
     var data = 'Some data to send ...';
     dis.request(options,data,callBack); // data is optional
