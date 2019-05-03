@@ -21,7 +21,7 @@ npm install --save lhd
 
 ## Usage
 
-### Http(s) Client
+### HTTP(S) Client
 
 ```js
     const lhd = require('lhd');
@@ -50,13 +50,9 @@ options.protocols defines the protocol to be used.
 options is defined in nodejs http(s) class.
 
 
-### Http Server
+### HTTP Server
 
 ```js
-    var HttpDispatcher = require('../httpdispatcher');
-    var http           = require('http');
-    var dispatcher     = new HttpDispatcher();
-    
     const lhd         = require('lhd');
     let cfg = {
       ... JSON.parse( fs.readFileSync( 'conf/config.json') ),
@@ -66,10 +62,6 @@ options is defined in nodejs http(s) class.
     const dis = new lhd(cfg);
 ```
 
-
-## HttpDispatcher
-
-
 request and response
 ---------
 
@@ -77,6 +69,7 @@ Every listeners is called with two parameters `request` and `response`.
 
 Request object is an instance of [`http.ClientRequest`](https://nodejs.org/api/http.html#http_class_http_clientrequest) with some custom properties:
 
+------ To Do
 - bodyBuffer : [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer) (available only on POST request)
 - body : String (available only on POST request)
 - params : Object
