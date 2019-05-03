@@ -25,7 +25,7 @@ npm install --save lhd
 
 ```js
     const lhd = require('lhd');
-    const dis = new lhd();
+    const dis = new lhd(); // No arguments needed
     
     const options = {
       protocol: 'https:',
@@ -37,7 +37,8 @@ npm install --save lhd
         Content-Type: 'application/json'
       },
       rejectUnauthorized: true
-    }
+    };
+    
     var data = 'Some data to send ...';
     dis.request(options,data,callBack); // data is optional
 ```
