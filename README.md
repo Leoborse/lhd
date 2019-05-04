@@ -11,8 +11,7 @@ nodejs and npm
 
 ## Installing
 
-Installing is very easy.
-enter into the root directory of your project and npm
+Installing is very easy. Enter into the root directory of your project and npm
 
 ```
 cd root_directory_where_is_located_your_file_package.json
