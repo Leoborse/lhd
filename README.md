@@ -65,14 +65,37 @@ options is defined in nodejs http(s) class.
         },
         'options': {
         }
+      },
+      "dispatcherConfig": {
+        "maxlen": {
+          "application/json": 100e3,
+          "default": 0
+        }
       }
     };
     const dis = new lhd(cfg);
+
+    // some listeners as example (API)
+    cfg.dispatcher.beforeFilter(jwt, knownUser);
+    cfg.dispatcher.onGet('/config/:type', isAdmin, recuperaConfig);
+    cfg.dispatcher.onPost('/config/:type', isAdmin, readBody, inserisciServizio);
+    cfg.dispatcher.onPut('/config/:type', isAdmin, readBody, aggiornaServizio);
+    cfg.dispatcher.onDelete('/config/:type', isAdmin, eliminaServizio);
+
+    // Static files are checked i no API is referenced
+    // First parameter i the url path the second is the local folder where files are located
+    cfg.dispatcher.setStatic('/','static');
+
+    // start the server
+    cfg.dispatcher.start(cfg);
+    
 ```
-
-server.protocol defines the protocol to be used, ie. `http:` or `https:`
-in the case o https the server options MUST contain the server certificate according to [`https`](https://nodejs.org/api/https.html)
-
+where:
+- cfg is the server configuration
+- server.protocol defines the protocol to be used, ie. `http:` or `https:`. In the case o https the server.options MUST contain the server key and certificate according to [`https.createServer`](https://nodejs.org/api/https.html#https_https_createserver_options_requestlistener)
+- server.tcp are ip and port 
+- server.dispatcherConfig defines the max file length by file content type that the server can receive (in POST or PUT for example). Types not mentioned are treated as default. In the example above json have to be smaller than 100KBytes, any othes file is rejected.
+the content type of the file is determined first by the magic bytes, last by content type.
 
 request and response
 ---------
