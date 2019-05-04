@@ -12,7 +12,7 @@ var HttpDispatcher = function(configurazione) {
   cfg = configurazione;
   if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
   try {
-    var lcfg = JSON.parse(fs.readFileSync( 'node_modules/lhd/package.json' ));
+    var lcfg = JSON.parse(fs.readFileSync( 'package.json' ));
     cfg.name = lcfg.name;
     cfg.version = lcfg.version;
   } catch(e) {
