@@ -166,7 +166,7 @@ Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api
 
 The response object extesions are the following:
 - res.err: Object
-    - Contains the error description which interrupts the execution of chained methods and the error response
+    - Contains the error description which interrupts the execution of chained methods and causes the error response
 
 
 # Author
