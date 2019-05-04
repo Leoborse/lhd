@@ -55,9 +55,18 @@ options is defined in nodejs http(s) class.
 ```js
     const lhd         = require('lhd');
     let cfg = {
-      ... JSON.parse( fs.readFileSync( 'conf/config.json') ),
-      ... JSON.parse( fs.readFileSync( 'package.json' ) ),
-      ... {'environment': 'Develope'}
+      'name': 'MyWebApplication',
+      'version': '1.0.0',
+      'environment': 'Develope',
+      'server": {
+        'protocol': 'http:',
+        'tcp": {
+          'host': '0.0.0.0',
+          'port': 9091
+        },
+        'options': {
+        }
+      }
     };
     const dis = new lhd(cfg);
 ```
