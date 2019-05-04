@@ -148,14 +148,26 @@ Every listeners is called with two parameters `request` and `response`.
 Request object is an instance of [`http.ClientRequest`](https://nodejs.org/api/http.html#http_class_http_clientrequest) with some custom properties:
 
 The request object extesions are the following:
-- req.user: Object content depends on authentication type (Authorization header)
-    - Author
-- req.params: Object. The properties of this object are those extracted from the request url. In the above example (see :type in the above example)
+- req.user: Object
+    - content depends on authentication type (Authorization header)
+        - contains JWT token i present in Autorization (bearer) header (JWT, OpenID, ...)
+        - contains {'sub': username} in Autorization (basic) header (User/password)
+        - contains {'sub': 'Anonimous'} in other cases
+- req.params: Object
+    - The properties of this object are those extracted from the request url. In the above example (see :type in the above example)
 - req.bodyBuffer : [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
-- req.body : String representation of input data (if possible)
-- req.bodyData: Object form encoded input data
+    - Present in POST, PUT
+- req.body : String
+    Content of input data (if possbile string representation o body buffer)
+- req.bodyData: Object
+    Content of input data when form encoded
 
 Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
+
+The response object extesions are the following:
+- res.err: Object
+    - Contains the error description which interrupts the execution of chained methods and the error response
+
 
 # Author
 
