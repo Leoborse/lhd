@@ -69,9 +69,20 @@ Every listeners is called with two parameters `request` and `response`.
 
 Request object is an instance of [`http.ClientRequest`](https://nodejs.org/api/http.html#http_class_http_clientrequest) with some custom properties:
 
------- To Do
+# To Do
 - bodyBuffer : [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer) (available only on POST request)
 - body : String (available only on POST request)
 - params : Object
 
 Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
+
+
+# Author
+
+LHD is based on [`HttpDispatcher`](https://github.com/alberto-bottarini/httpdispatcher)
+* **Leonardo Borselli** - *First Release* - [Leoborse](https://github.com/Leoborse)
+
+
+# License
+
+This project is licensed under the MIT License - see the [`LICENSE`](LICENSE) file for details
