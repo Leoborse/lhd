@@ -76,22 +76,58 @@ options is defined in nodejs http(s) class.
     const dis = new lhd(cfg);
 
     // some listeners as example (API)
-    cfg.dispatcher.beforeFilter(jwt, knownUser);
-    cfg.dispatcher.onGet('/config/:type', isAdmin, recuperaConfig);
-    cfg.dispatcher.onPost('/config/:type', isAdmin, readBody, inserisciServizio);
-    cfg.dispatcher.onPut('/config/:type', isAdmin, readBody, aggiornaServizio);
-    cfg.dispatcher.onDelete('/config/:type', isAdmin, eliminaServizio);
+    dis.beforeFilter(jwt, knownUser);
+    dis.onGet('/config/:type', isAdmin, recuperaConfig);
+    dis.onPost('/config/:type', isAdmin, readBody, inserisciServizio);
+    dis.onPut('/config/:type', isAdmin, readBody, aggiornaServizio);
+    dis.onDelete('/config/:type', isAdmin, eliminaServizio);
 
     // Static files are checked i no API is referenced
     // First parameter i the url path the second is the local folder where files are located
-    cfg.dispatcher.setStatic('/','static');
+    dis.setStatic('/','static');
 
     // start the server
-    cfg.dispatcher.start(cfg);
+    dis.start(cfg);
     
+    function isAdmin(req,res) {
+      if ( ! cfg.managers[req.user.sub] ) {
+        req.err = {
+          n: 403,
+          text: "Forbidden: Insufficient privileges"
+        }
+        req.cfg.dispatcher.errorListener(req,res);
+      }
+      req.chain.next(req,res);
+    }
+    
+    function knownUser(req,res) {
+      if ( typeof req.user.sub === 'undefined' ) {
+        req.err = {
+          n: 401,
+          text: "Unauthorized"
+        }
+        req.cfg.dispatcher.errorListener(req,res);
+      }
+      req.chain.next(req,res);
+    }
+    
+    function readBody(req,res) {
+      req.cfg.dispatcher.getBody(req,res)
+    }
+
 ```
-where:
-- cfg is the server configuration
+
+The methods onGet, onPost, .., in the above example are used to register listeners.
+When a request is received the methods are chained and executed in sequence.
+Small methods are better verified and tested.
+Usually a sequence like the following may be a good choice
+- Authenticate
+- Autorize
+- Check input data
+- Do the job
+- Filter the response
+
+In the example above cfg is the server configuration, where:
 - server.protocol defines the protocol to be used, ie. `http:` or `https:`. In the case o https the server.options MUST contain the server key and certificate according to [`https.createServer`](https://nodejs.org/api/https.html#https_https_createserver_options_requestlistener)
 - server.tcp are ip and port 
 - server.dispatcherConfig defines the max file length by file content type that the server can receive (in POST or PUT for example). Types not mentioned are treated as default. In the example above json have to be smaller than 100KBytes, any othes file is rejected.
