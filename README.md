@@ -44,7 +44,7 @@ npm install --save lhd
 
 where:
 
-options.protocols defines the protocol to be used, ie. `http:` or `https:`
+options.protocol defines the protocol to be used, ie. `http:` or `https:`
 
 options is defined in nodejs http(s) class.
 
@@ -69,6 +69,10 @@ options is defined in nodejs http(s) class.
     };
     const dis = new lhd(cfg);
 ```
+
+server.protocol defines the protocol to be used, ie. `http:` or `https:`
+in the case o https the server options MUST contain the server certificate according to [`https`](https://nodejs.org/api/https.html)
+
 
 request and response
 ---------
