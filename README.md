@@ -76,6 +76,7 @@ options is defined in nodejs http(s) class.
     const dis = new lhd(cfg);
 
     // some listeners as example (API)
+    // :type means a value that is a parameter with name 'type'
     dis.beforeFilter(jwt, knownUser);
     dis.onGet('/config/:type', isAdmin, .... , okresponse);
     dis.onPost('/config/:type', isAdmin, .... , okresponse);
@@ -146,10 +147,13 @@ Every listeners is called with two parameters `request` and `response`.
 
 Request object is an instance of [`http.ClientRequest`](https://nodejs.org/api/http.html#http_class_http_clientrequest) with some custom properties:
 
-# To Do
-- bodyBuffer : [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer) (available only on POST request)
-- body : String (available only on POST request)
-- params : Object
+The request object extesions are the following:
+- req.user: Object content depends on authentication type (Authorization header)
+    - Author
+- req.params: Object. The properties of this object are those extracted from the request url. In the above example (see :type in the above example)
+- req.bodyBuffer : [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
+- req.body : String representation of input data (if possible)
+- req.bodyData: Object form encoded input data
 
 Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
 
