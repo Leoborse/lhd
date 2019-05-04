@@ -312,6 +312,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
    cb = cbr;
    datb = typeof dat == 'string' ? dat : JSON.stringify(dat);
   }
+  opt.headers = opt.headers || {};
   opt.headers['Content-Length'] = datb.length;
   const proto = opt.protocol == 'https:' ? https : http ;
   const r = proto.request(opt, (res) => {
