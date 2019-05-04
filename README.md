@@ -156,7 +156,7 @@ Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api
 # Author
 
 LHD is based on [`HttpDispatcher`](https://github.com/alberto-bottarini/httpdispatcher)
-* [**Leonardo Borselli**](https://github.com/Leoborse) - *First Release* -
+* [**Leonardo Borselli**](https://github.com/Leoborse) - *First Release*
 
 
 # License
