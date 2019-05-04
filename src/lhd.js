@@ -9,7 +9,6 @@ const urlparser   = require('url');
 
 var HttpDispatcher = function(configurazione) {
   this.cfg = typeof configurazione != 'undefined' ? configurazione : {};
-  this.Agent = https.Agent;
   cfg = configurazione;
   if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
   try {
