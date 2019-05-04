@@ -351,7 +351,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
     });
   });
   if ( datb.length > 0 )
-    r.write(data);
+    r.write(datb);
   r.end();
 }
 
