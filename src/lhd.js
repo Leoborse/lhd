@@ -24,7 +24,7 @@ var HttpDispatcher = function(configurazione) {
     value: {
       name: cfg.name,
       version: cfg.version,
-      environment: cfg.ambiente||'Developing',
+      environment: cfg.environment||'Developing',
     }
   });
 

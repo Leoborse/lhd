@@ -57,7 +57,7 @@ options is defined in nodejs http(s) class.
     let cfg = {
       ... JSON.parse( fs.readFileSync( 'conf/config.json') ),
       ... JSON.parse( fs.readFileSync( 'package.json' ) ),
-      ... {'ambiente': 'Sviluppo di Leonardo'}
+      ... {'environment': 'Develope'}
     };
     const dis = new lhd(cfg);
 ```
