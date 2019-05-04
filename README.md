@@ -82,7 +82,7 @@ options is defined in nodejs http(s) class.
     dis.onPut('/config/:type', isAdmin, readBody, aggiornaServizio);
     dis.onDelete('/config/:type', isAdmin, eliminaServizio);
 
-    // Static files are checked i no API is referenced
+    // Static files are checked if no API is referenced
     // First parameter i the url path the second is the local folder where files are located
     dis.setStatic('/','static');
 
@@ -151,7 +151,7 @@ Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api
 # Author
 
 LHD is based on [`HttpDispatcher`](https://github.com/alberto-bottarini/httpdispatcher)
-* **Leonardo Borselli** - *First Release* - [Leoborse](https://github.com/Leoborse)
+* [**Leonardo Borselli**](https://github.com/Leoborse) - *First Release* -
 
 
 # License
