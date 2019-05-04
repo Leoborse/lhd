@@ -306,13 +306,13 @@ HttpDispatcher.prototype.redirect = function(status,url,req,res){
 }
 
 HttpDispatcher.prototype.request = function(opt,dat,cbr){
-  var data = dat;
-  var cb = cbr;
-  if ( typeof cbr == 'undefined' ) {
-   cb = dat;
-   data = null;
+  var datb = '';
+  var cb = dat;
+  if ( typeof cbr != 'undefined' ) {
+   cb = cbr;
+   datb = typeof dat == 'string' ? dat : JSON.stringify(dat);
   }
-  opt.headers['Content-Length'] = data.length;
+  opt.headers['Content-Length'] = datb.length;
   const proto = opt.protocol == 'https:' ? https : http ;
   const r = proto.request(opt, (res) => {
     if ( res.statusCode >= 200 && res.statusCode <= 299 ) {
@@ -349,7 +349,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
       }
     });
   });
-  if ( data != null )
+  if ( datb.length > 0 )
     r.write(data);
   r.end();
 }
