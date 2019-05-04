@@ -49,7 +49,7 @@ options.protocol defines the protocol to be used, ie. `http:` or `https:`
 options is defined in nodejs http(s) class.
 
 
-### HTTP Server
+### HTTP(S) Server
 
 ```js
     const lhd         = require('lhd');
