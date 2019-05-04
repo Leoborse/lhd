@@ -186,7 +186,7 @@ HttpDispatcher.prototype.start = function(cfg) {
     if ( typeof cfg.database !== 'undefined' ) req.db = cfg.database.dbconfig;
     req.reqid = cfg.uuid();
     cfg.dispatcher.dispatch(req, res);
-  }).listen(cfg.server,function(){
+  }).listen(cfg.server.tcp,function(){
     if ( this.listening ) {
       cfg.log({
         status: "Info",
