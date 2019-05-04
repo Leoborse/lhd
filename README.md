@@ -57,19 +57,19 @@ options is defined in nodejs http(s) class.
       'name': 'MyWebApplication',
       'version': '1.0.0',
       'environment': 'Develope',
-      'server": {
+      'server': {
         'protocol': 'http:',
-        'tcp": {
+        'tcp': {
           'host': '0.0.0.0',
           'port': 9091
         },
         'options': {
         }
       },
-      "dispatcherConfig": {
-        "maxlen": {
-          "application/json": 100e3,
-          "default": 0
+      'dispatcherConfig': {
+        'maxlen': {
+          'application/json': 100e3,
+          'default': 0
         }
       }
     };
@@ -77,10 +77,10 @@ options is defined in nodejs http(s) class.
 
     // some listeners as example (API)
     dis.beforeFilter(jwt, knownUser);
-    dis.onGet('/config/:type', isAdmin, recuperaConfig);
-    dis.onPost('/config/:type', isAdmin, readBody, inserisciServizio);
-    dis.onPut('/config/:type', isAdmin, readBody, aggiornaServizio);
-    dis.onDelete('/config/:type', isAdmin, eliminaServizio);
+    dis.onGet('/config/:type', isAdmin, .... , okresponse);
+    dis.onPost('/config/:type', isAdmin, .... , okresponse);
+    dis.onPut('/config/:type', isAdmin, .... , okresponse);
+    dis.onDelete('/config/:type', isAdmin, .... , okresponse);
 
     // Static files are checked if no API is referenced
     // First parameter i the url path the second is the local folder where files are located
@@ -93,7 +93,7 @@ options is defined in nodejs http(s) class.
       if ( ! cfg.managers[req.user.sub] ) {
         req.err = {
           n: 403,
-          text: "Forbidden: Insufficient privileges"
+          text: 'Forbidden: Insufficient privileges'
         }
         req.cfg.dispatcher.errorListener(req,res);
       }
@@ -104,7 +104,7 @@ options is defined in nodejs http(s) class.
       if ( typeof req.user.sub === 'undefined' ) {
         req.err = {
           n: 401,
-          text: "Unauthorized"
+          text: 'Unauthorized'
         }
         req.cfg.dispatcher.errorListener(req,res);
       }
@@ -113,6 +113,12 @@ options is defined in nodejs http(s) class.
     
     function readBody(req,res) {
       req.cfg.dispatcher.getBody(req,res)
+    }
+    
+    function okresponse(stat,docs,req,res){
+      const status = 200;
+      const rsp = 'The response data, string, json, ...';
+      req.cfg.dispatcher.response(status,rsp,req,res);
     }
 
 ```
@@ -146,7 +152,6 @@ Request object is an instance of [`http.ClientRequest`](https://nodejs.org/api/h
 - params : Object
 
 Response object is an instance of [`http.ServerResponse`](https://nodejs.org/api/http.html#http_class_http_serverresponse).
-
 
 # Author
 
