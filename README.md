@@ -156,7 +156,7 @@ The request object extesions are the following:
 - req.params: Object
     - The properties of this object are those extracted from the request url. In the above example (see :type in the above example)
 - req.bodyBuffer : [`Buffer`](https://nodejs.org/api/buffer.html#buffer_class_buffer)
-    - Present in POST, PUT
+    - Present in POST, PUT, ...
 - req.body : String
     Content of input data (if possbile string representation o body buffer)
 - req.bodyData: Object
