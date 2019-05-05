@@ -9,7 +9,7 @@ const urlparser   = require('url');
 
 var HttpDispatcher = function(configurazione) {
   this.cfg = typeof configurazione != 'undefined' ? configurazione : {};
-  cfg = configurazione;
+  cfg = this.cfg;
   if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
   try {
     var lcfg = JSON.parse(fs.readFileSync( 'package.json' ));
@@ -96,6 +96,10 @@ var HttpDispatcher = function(configurazione) {
       }
     }
   }
+};
+
+HttpDispatcher.prototype.log = function(arg) {
+  this.cfg.log(arg);
 };
 
 HttpDispatcher.prototype.on = function(method, args) {
