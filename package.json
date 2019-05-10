@@ -1,10 +1,10 @@
 {
   "name": "lhd",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "(Another) Light HTTP(s) Dispatcher",
   "main": "src/lhd.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/lhd.js"
   },
   "repository": {
     "type": "git",
@@ -14,7 +14,8 @@
     "HTTP",
     "Dispatcher"
   ],
-  "author": "Leonardo Borselli",
+  "author": "Leonardo Borselli <leonardo.borselli@gmail.com>",
+  "contributors": [],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Leoborse/lhd/issues"
@@ -23,5 +24,10 @@
   "dependencies": {
     "file-type": "^10.11.0",
     "mime-types": "^2.1.24"
-  }
+  },
+  "files": [
+    "LICENSE",
+    "Readme.md",
+    "src/"
+  ]
 }

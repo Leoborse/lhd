@@ -313,8 +313,16 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
   var datb = '';
   var cb = dat;
   if ( typeof cbr != 'undefined' ) {
-   cb = cbr;
-   datb = typeof dat == 'string' ? dat : JSON.stringify(dat);
+    cb = cbr;
+    if ( typeof dat == 'string' ) {
+      datb = dat;
+    } else {
+      if ( opt.headers['Content-Type'] == 'application/x-www-form-urlencoded' ) {
+        var datb = querystring.stringify(dat);
+      } else {
+        var datb = JSON.stringify(dat);
+      }
+    }
   }
   opt.headers = opt.headers || {};
   opt.headers['Content-Length'] = datb.length;
