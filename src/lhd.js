@@ -310,10 +310,11 @@ HttpDispatcher.prototype.redirect = function(status,url,req,res){
 }
 
 HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
+  opt.headers = opt.headers || {};
   var datb = '';
   var cb = dat;
   var err = cbr
-  if ( typeof cbr != 'undefined' ) {
+  if ( typeof dat != 'function' ) {
     cb = cbr;
     err = cbe;
     if ( typeof dat == 'string' ) {
@@ -326,7 +327,6 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
       }
     }
   }
-  opt.headers = opt.headers || {};
   opt.headers['Content-Length'] = datb.length;
   const proto = opt.protocol == 'https:' ? https : http ;
   const r = proto.request(opt, (res) => {
