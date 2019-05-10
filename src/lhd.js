@@ -309,11 +309,13 @@ HttpDispatcher.prototype.redirect = function(status,url,req,res){
   req.cfg.dispatcher.response(status,url,req,res);
 }
 
-HttpDispatcher.prototype.request = function(opt,dat,cbr){
+HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
   var datb = '';
   var cb = dat;
+  var err = cbr
   if ( typeof cbr != 'undefined' ) {
     cb = cbr;
+    err = cbe;
     if ( typeof dat == 'string' ) {
       datb = dat;
     } else {
@@ -351,6 +353,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
           action: opt
         }
       });
+      if ( cbe !== 'undefined' ) err(res);
     }
   }).on('error', (e) => {
     cfg.log({
@@ -361,6 +364,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr){
         message: e.message
       }
     });
+    if ( cbe !== 'undefined' ) err(res);
   });
   if ( datb.length > 0 )
     r.write(datb);
