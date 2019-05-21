@@ -8,7 +8,17 @@ const querystring = require('querystring');
 const urlparser   = require('url');
 
 var HttpDispatcher = function(configurazione) {
-  this.cfg = typeof configurazione != 'undefined' ? configurazione : {};
+  configurazione = configurazione || {};
+  if ( typeof configurazione.dispatcher == 'undefined' ) configurazione.dispatcher = this;
+  if ( typeof configurazione.uuid == 'undefined' ) 
+  configurazione.uuid = function() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+      return v.toString(16).toLowerCase(); //Lowercase ITU X.667 §6.5.4
+    })
+  };
+
+  this.cfg = configurazione;
   cfg = this.cfg;
   if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
   try {
@@ -181,6 +191,7 @@ HttpDispatcher.prototype.onError = function(cb) {
 HttpDispatcher.prototype.onAuth = function(cb) {
   this.auth = cb;
 };
+
 
 HttpDispatcher.prototype.start = function(cfg) {
   var proto = cfg.server.protocol == 'http:' ? http : https;
@@ -381,6 +392,7 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
     errorListener(req, res);
     return;
   }
+  const t0 = (new Date()).getTime() - req.StartUpTime;
   fs.readFile(filename, function(err, file) {
     if(err) {
       if ( url.pathname.match(/\.[^\/]*$/) ) {  // Finisce con un nome file
@@ -396,12 +408,27 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       return;
     }
     var ft = req.cfg.dispatcher.DataType(req,file);
-    res.writeHeader(200, {
-      'Content-Length': Buffer.byteLength(file),
+    const status = 200;
+    const l = Buffer.byteLength(file);
+    res.writeHeader(status, {
+      'Content-Length': l,
       'Content-Type': ft.mime
     });
     res.write(file, 'binary');
     res.end();
+    const t = (new Date()).getTime() - req.StartUpTime;
+    req.cfg.log({
+      name: req.cfg.name,
+      version: req.cfg.version,
+      reqid: req.reqid,
+      status: status,
+      method: req.method,
+      length: l,
+      timems: t,
+      timefbms: t0,
+      url: req.url,
+      user: req.user.sub
+    });
   });
 };
 
