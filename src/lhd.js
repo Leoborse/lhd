@@ -20,7 +20,16 @@ var HttpDispatcher = function(configurazione) {
 
   this.cfg = configurazione;
   cfg = this.cfg;
-  if ( typeof cfg.log == 'undefined' ) cfg.log = console.log;
+  if ( typeof cfg.log == 'undefined' ) cfg.log = function(m){
+    if ( typeof m.status == 'number' ) {
+      console.log(m);
+    } else if ( m.status == 'Info' && typeof m.value.server !== 'undefined' ) {
+      var s = m.value.server;
+      console.log(`Usage: ${s.protocol}\/\/${s.tcp.host}:${s.tcp.port}`);
+    } else {
+//      console.log(JSON.stringify(m));
+    }
+  }
   try {
     var lcfg = JSON.parse(fs.readFileSync( 'package.json' ));
     cfg.name = lcfg.name;
@@ -198,6 +207,7 @@ HttpDispatcher.prototype.start = function(cfg) {
   proto.createServer( function(req,res) {
     // Gestione delle attività
     req.cfg = cfg;
+    req.app = this;
     if ( typeof cfg.database !== 'undefined' ) req.db = cfg.database.dbconfig;
     req.reqid = cfg.uuid();
     cfg.dispatcher.dispatch(req, res);

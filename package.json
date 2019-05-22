@@ -4,7 +4,8 @@
   "description": "(Another) Light HTTP(s) Dispatcher",
   "main": "src/lhd.js",
   "scripts": {
-    "start": "node src/lhd.js"
+    "start": "node src/lhd.js",
+    "test": "node test/test.js"
   },
   "repository": {
     "type": "git",
