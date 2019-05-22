@@ -1,0 +1,21 @@
+{
+  "server": {
+    "protocol": "http:",
+    "tcp": {
+      "host": "0.0.0.0",
+      "port": 9091
+    },
+    "options": {
+    }
+  },
+  "dispatcherConfig": {
+    "apiPaths": [
+      "RTstaging",
+      "RT"
+    ],
+    "maxlen": {
+      "application/json": 100e3,
+      "default": 0
+    }
+  }
+}
