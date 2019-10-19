@@ -201,7 +201,6 @@ HttpDispatcher.prototype.onAuth = function(cb) {
   this.auth = cb;
 };
 
-
 HttpDispatcher.prototype.start = function(cfg) {
   var proto = cfg.server.protocol == 'http:' ? http : https;
   proto.createServer( function(req,res) {
@@ -331,6 +330,7 @@ HttpDispatcher.prototype.redirect = function(status,url,req,res){
 }
 
 HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
+  if ( typeof opt == 'string') opt = urpparser.parse(opt);
   opt.headers = opt.headers || {};
   var datb = '';
   var cb = dat;
@@ -365,27 +365,30 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         }
       });
     } else {
-      cfg.log({
+      var rsp = {
         status: "Error",
         name: "HttpDispatcher",
         value: {
           statusCode: res.statusCode,
           statusMessage: res.statusMessage,
-          action: opt
+          action: opt,
+          response: res
         }
-      });
-      if ( cbe !== 'undefined' ) err(res);
+      }:
+      cfg.log(rsp);
+      if ( cbe !== 'undefined' ) err(rsp);
     }
   }).on('error', (e) => {
-    cfg.log({
+    var rsp = {
       status: "Error",
       name: "HttpDispatcher unknown",
       value: {
         action: opt,
         message: e.message
       }
-    });
-    if ( cbe !== 'undefined' ) err(res);
+    };
+    cfg.log(rsp);
+    if ( cbe !== 'undefined' ) err(rsp);
   });
   if ( datb.length > 0 )
     r.write(datb);
