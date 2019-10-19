@@ -296,6 +296,8 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   });
 }
 
+HttpDispatcher.prototype.url = this.urlparser;
+
 HttpDispatcher.prototype.response = function(status,obj,req,res){
   const rsp = typeof obj == 'string' ? obj : JSON.stringify(obj);
   const l = Buffer.byteLength(rsp);
