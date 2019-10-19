@@ -330,7 +330,7 @@ HttpDispatcher.prototype.redirect = function(status,url,req,res){
 }
 
 HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
-  if ( typeof opt == 'string') opt = urpparser.parse(opt);
+  if ( typeof opt == 'string') opt = urlparser.parse(opt);
   opt.headers = opt.headers || {};
   var datb = '';
   var cb = dat;

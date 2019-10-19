@@ -374,7 +374,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
           action: opt,
           response: res
         }
-      }:
+      };
       cfg.log(rsp);
       if ( cbe !== 'undefined' ) err(rsp);
     }
