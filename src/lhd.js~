@@ -378,7 +378,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         }
       };
       cfg.log(rsp);
-      if ( typeof cbe == 'function' ) cbe(rsp);
+      if ( cbe !== 'undefined' ) err(rsp);
     }
   }).on('error', (e) => {
     var rsp = {
@@ -390,7 +390,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
       }
     };
     cfg.log(rsp);
-    if ( typeof cbe == 'function' ) cbe(rsp);
+    if ( cbe !== 'undefined' ) err(rsp);
   });
   if ( datb.length > 0 )
     r.write(datb);
