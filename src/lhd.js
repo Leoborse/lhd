@@ -39,6 +39,7 @@ var HttpDispatcher = function(configurazione) {
   cfg.log({
     status: "Info",
     name: "Service description",
+    action: 'push',
     value: {
       name: cfg.name,
       version: cfg.version,
@@ -50,8 +51,10 @@ var HttpDispatcher = function(configurazione) {
   this.services = [];
   this.listeners = {
   };
-  // Pulisce url con '//' multipli e con eventuali altri errori evidenti
-  this.clean     = [
+  // Pulisce url con errori evidenti // /./ /../
+  this.clean     = 
+    {e: new RegExp('\/\.\/','g'), r: '/'},
+    {e: new RegExp('\/\.\.\/','g'), r: '/'},
     {e: new RegExp('\/+','g'), r: '/'}
   ];
   
@@ -129,11 +132,6 @@ HttpDispatcher.prototype.on = function(method, args) {
     url: args.shift(),
     actions: [],
   };
-  // Elimina contesti non necessari per le api
-  for ( var i = 0; i<this.pre.length; i++ ) {
-    azione.url = azione.url.replace(this.pre[i].e,this.pre[i].r);
-  }
-
   args.forEach(function(entry) {
     azione.actions.push(entry.name);
   });
@@ -250,16 +248,13 @@ HttpDispatcher.prototype.dispatch = function(req, res) {
 
   req.fullURL = req.url;
   req.StartUpTime = (new Date()).getTime();
-
   req.params = urlparser.parse(req.url, true).query;
 
   // Elimina alcune malformazioni nelle url
   for ( i=0; i<this.clean.length; i++ ) {
     req.url = req.url.replace(this.clean[i].e,this.clean[i].r);
   }
-
-  req.staticurl = req.url
-  
+  req.staticurl = req.url  
   // Elimina contesti non necessari per le api
   for ( var i = 0; i<this.pre.length; i++ ) {
     req.url = req.url.replace(this.pre[i].e,this.pre[i].r);
