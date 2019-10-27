@@ -129,6 +129,11 @@ HttpDispatcher.prototype.on = function(method, args) {
     url: args.shift(),
     actions: [],
   };
+  // Elimina contesti non necessari per le api
+  for ( var i = 0; i<this.pre.length; i++ ) {
+    azione.url = azione.url.replace(this.pre[i].e,this.pre[i].r);
+  }
+
   args.forEach(function(entry) {
     azione.actions.push(entry.name);
   });
