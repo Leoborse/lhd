@@ -52,7 +52,7 @@ var HttpDispatcher = function(configurazione) {
   this.listeners = {
   };
   // Pulisce url con errori evidenti // /./ /../
-  this.clean     = 
+  this.clean = [
     {e: new RegExp('\/\.\/','g'), r: '/'},
     {e: new RegExp('\/\.\.\/','g'), r: '/'},
     {e: new RegExp('\/+','g'), r: '/'}
@@ -302,6 +302,8 @@ HttpDispatcher.prototype.response = function(status,obj,req,res){
   const rsp = typeof obj == 'string' ? obj : JSON.stringify(obj);
   const l = Buffer.byteLength(rsp);
   let head = {
+    'X-Robots-Tag': 'noarchive',
+    'X-Robots-Tag': 'noindex, nofollow',
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': l,
 //    'ETag': [req.cfg.name, req.cfg.version, req.reqid].join('/')
