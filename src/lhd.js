@@ -375,8 +375,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         value: {
           statusCode: res.statusCode,
           statusMessage: res.statusMessage,
-          action: opt,
-          response: res
+          action: opt
         }
       };
       cfg.log(rsp);
