@@ -23,12 +23,12 @@
   },
   "homepage": "https://github.com/Leoborse/lhd#readme",
   "dependencies": {
-    "file-type": "^10.11.0",
-    "mime-types": "^2.1.24"
+    "file-type": "latest",
+    "mime-types": "latest"
   },
   "files": [
     "LICENSE",
     "Readme.md",
-    "src/"
+    "lhd.js"
   ]
 }
