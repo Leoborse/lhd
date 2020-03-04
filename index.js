@@ -289,13 +289,10 @@ HttpDispatcher.prototype.response = function(status,obj,req,res){
   const rsp = typeof obj == 'string' ? obj : JSON.stringify(obj);
   const l = Buffer.byteLength(rsp);
   let head = {
-    'X-Robots-Tag': 'noarchive',
-    'X-Robots-Tag': 'noindex, nofollow',
+    'X-Robots-Tag': ['noarchive', 'noindex, nofollow'],
     'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-cache', // RFC7234, https://tools.ietf.org/html/rfc7234
-    'Cache-Control': 'no-store',
-    'Cache-Control': 'no-transform',
-    'Cache-Control': 'private',
+    'Cache-Control': ['no-cache', // RFC7234, https://tools.ietf.org/html/rfc7234
+            'no-store', 'no-transform', 'private'],
     'Content-Length': l,
     'ETag': [req.cfg.name, req.cfg.version, req.reqid].join('/')
   };
