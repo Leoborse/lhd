@@ -59,7 +59,7 @@ var HttpDispatcher = function(configurazione) {
 
   this.auth = function(req, res) {
     req.user = {
-      sub: "Anonimous"
+      sub: "Anonymous"
     };
     if ( ! req.headers ) return;
     if ( req.headers['authorization'] ) {
