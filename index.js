@@ -214,6 +214,16 @@ HttpDispatcher.prototype.start = function(cfg) {
   });
 };
 
+HttpDispatcher.prototype.DataType = function(req,data) {
+  var mime = req.headers['content-type'];
+  var ext = mimeType.extension(mime)
+  req.bodyType = {
+    ext: ext,
+    mime: mimeType.lookup(ext)
+  }
+  return req.bodyType;
+}
+
 HttpDispatcher.prototype.dispatch = function(req, res) {
   req.cfg.dispatcher = req.cfg.dispatcher || this;
   req.fullURL = req.url;
