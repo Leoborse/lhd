@@ -215,22 +215,6 @@ HttpDispatcher.prototype.start = function(cfg) {
   });
 };
 
-HttpDispatcher.prototype.DataType = function(req,data) {
-  var d = data ? data : req.bodyBuffer;
-  // Content-Type ottenuto dalla lettura dei magic bytes
-  req.bodyType = fileType(d);
-  if ( req.bodyType ) return req.bodyType;
-  // Content-Type ottenuto dal nome del file o dall'header della richiesta
-  var fn = req.urlsec['filename'] || urlparser.parse(req.url).pathname;
-  var mm = fn ? mimeType.lookup(fn) : req.headers['content-type'];
-  var mime = mm ? mm : mimeType.lookup('a.json');
-  req.bodyType = {
-    ext: mimeType.extension(mime),
-    mime: mime
-  }
-  return req.bodyType;
-}
-
 HttpDispatcher.prototype.dispatch = function(req, res) {
   req.cfg.dispatcher = req.cfg.dispatcher || this;
   req.fullURL = req.url;
