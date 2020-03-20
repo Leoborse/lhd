@@ -1,6 +1,6 @@
 {
   "name": "lhd",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "(Another) Light HTTP(s) Dispatcher",
   "main": "src/lhd.js",
   "scripts": {

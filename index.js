@@ -1,7 +1,6 @@
 const fs          = require('fs');
 const http        = require('http');
 const https       = require('https');
-const fileType    = require('file-type');   // Magic-bytes
 const mimeType    = require('mime-types');
 const path        = require('path');
 const querystring = require('querystring');
