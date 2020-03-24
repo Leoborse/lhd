@@ -200,7 +200,7 @@ HttpDispatcher.prototype.start = function(config) {
     if ( typeof config.database !== 'undefined' ) req.db = config.database.dbconfig;
     req.reqid = config.uuid();
     config.dispatcher.dispatch(req, res);
-  }).listen(cfg.server.tcp,function(){
+  }).listen(config.server.tcp,function(){
     if ( this.listening ) {
       config.log({
         status: "Info",
@@ -215,12 +215,25 @@ HttpDispatcher.prototype.start = function(config) {
 };
 
 HttpDispatcher.prototype.DataType = function(req,data) {
-  var mime = req.headers['content-type'];
-  var ext = mimeType.extension(mime)
   req.bodyType = {
     ext: ext,
-    mime: mimeType.lookup(ext)
+    mime: 'default'
   }
+  var mime = req.headers['content-type'];
+  if ( typeof mime == 'string' )
+    mime = mime.split(';')[0]
+  if ( mime == 'multipart/form-data') {
+    req.bodyType = {
+      ext: ext,
+      mime: mime
+    }
+  }
+  var ext = mimeType.extension(mime)
+  if ( ext )
+    req.bodyType = {
+      ext: ext,
+      mime: mimeType.lookup(ext)
+    }
   return req.bodyType;
 }
 
@@ -257,12 +270,12 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   req.on('data', function(data) {
     if ( dl == 0 ) {
       var ft = req.cfg.dispatcher.DataType(req,data);
-      req.maxlen = req.cfg.dispatcher.maxlen[ft.mime] || req.cfg.dispatcher.maxlen['default'];
+      req.maxlen = req.cfg.dispatcherConfig.maxlen[ft.mime] || req.cfg.dispatcherConfig.maxlen['default'];
     }
     dl += data.length;
     if ( dl > req.maxlen ) {
       req.error = {ok:413, text: 'Payload Too Large', ft: ft};
-      req.cfg.dispatcher.errorListener(req,res);
+      req.cfg.dispatcher.response(req.error.ok,req.error,req,res);
       req.chain.next(req,res);
     } else {
       chunks.push(data);
@@ -359,7 +372,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
           action: opt
         }
       };
-      cfg.log(rsp);
+      this.cfg.log(rsp);
       if ( typeof cbe == 'function' ) cbe(rsp);
     }
   }).on('error', (e) => {
