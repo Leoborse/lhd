@@ -17,7 +17,7 @@ var HttpDispatcher = function(configurazione) {
     })
   };
   this.cfg = configurazione;
-  cfg = this.cfg;
+  let cfg = this.cfg;
   try {
     var lcfg = JSON.parse(fs.readFileSync( 'package.json' ));
     cfg.name = lcfg.name;
@@ -56,11 +56,12 @@ var HttpDispatcher = function(configurazione) {
     }
   };
 
-HttpDispatcher.prototype.auth = function(req, res) {
+  this.auth = function(req, res) {
     req.user = {
       sub: "Anonymous"
     };
-    if ( req.headers && req.headers['authorization'] ) {
+    if ( ! req.headers ) return;
+    if ( req.headers['authorization'] ) {
       const a = req.headers['authorization'].replace(/ +/g," ").split(" ");
       req.auth = {
         type: a[0],
@@ -68,14 +69,13 @@ HttpDispatcher.prototype.auth = function(req, res) {
       };
       if ( req.auth.type == 'Bearer' ) {
         try {
-          const jwt = req.auth.value.split('.');
-          const header = Buffer.from(jwt[0], 'base64').toString('utf8');
-          const token = Buffer.from(jwt[1], 'base64').toString('utf8');
+          const jwt = req.auth.value;
+//          const header = Buffer.from(jwt.split('.')[0], 'base64').toString('utf8');
+          const token = Buffer.from(jwt.split('.')[1], 'base64').toString('utf8');
           req.user = JSON.parse(token);
-          req.user.token = req.auth.value;
+          req.user.token = jwt;
         } catch(e) {
         }
-        console.log(req.user)
       }
     }
   };
@@ -191,23 +191,23 @@ HttpDispatcher.prototype.onAuth = function(cb) {
   this.auth = cb;
 };
 
-HttpDispatcher.prototype.start = function(cfg) {
-  var proto = cfg.server.protocol == 'http:' ? http : https;
+HttpDispatcher.prototype.start = function(config) {
+  var proto = config.server.protocol == 'http:' ? http : https;
   proto.createServer( function(req,res) {
     // Gestione delle attività
-    req.cfg = cfg;
+    req.cfg = config;
     req.app = this;
-    if ( typeof cfg.database !== 'undefined' ) req.db = cfg.database.dbconfig;
-    req.reqid = cfg.uuid();
-    cfg.dispatcher.dispatch(req, res);
+    if ( typeof config.database !== 'undefined' ) req.db = config.database.dbconfig;
+    req.reqid = config.uuid();
+    config.dispatcher.dispatch(req, res);
   }).listen(cfg.server.tcp,function(){
     if ( this.listening ) {
-      cfg.log({
+      config.log({
         status: "Info",
         name: "lhd listener",
         value: {
-          server: cfg.server,
-          services: cfg.dispatcher.services
+          server: config.server,
+          services: config.dispatcher.services
         }
       });
     }
@@ -215,7 +215,7 @@ HttpDispatcher.prototype.start = function(cfg) {
 };
 
 HttpDispatcher.prototype.DataType = function(req,data) {
-  var mime = req.headers['content-type'] || false;
+  var mime = req.headers['content-type'];
   var ext = mimeType.extension(mime)
   req.bodyType = {
     ext: ext,
@@ -372,7 +372,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
       }
     };
     cfg.log(rsp);
-    if ( typeof cbe == 'function' ) cbe(rsp);
+    err(rsp);
   });
   if ( datb.length > 0 )
     r.write(datb);
@@ -380,6 +380,9 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
 }
 
 HttpDispatcher.prototype.staticListener =  function(req, res) {
+  if ( req.method != 'GET' ) {
+    req.dispatcher.response(404,"{text: not found}",req,res)
+  }
   var url = urlparser.parse(req.url, true);
 
   var errorListener = this.errorListener;
@@ -404,11 +407,12 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       }
       return;
     }
+    var ft = req.cfg.dispatcher.DataType(req,file);
     const status = 200;
     const l = Buffer.byteLength(file);
     res.writeHeader(status, {
       'Content-Length': l,
-      'Content-Type': mimeType.lookup(filename)
+      'Content-Type': ft.mime
     });
     res.write(file, 'binary');
     res.end();
