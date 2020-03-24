@@ -56,12 +56,11 @@ var HttpDispatcher = function(configurazione) {
     }
   };
 
-  this.auth = function(req, res) {
+HttpDispatcher.prototype.auth = function(req, res) {
     req.user = {
       sub: "Anonymous"
     };
-    if ( ! req.headers ) return;
-    if ( req.headers['authorization'] ) {
+    if ( req.headers && req.headers['authorization'] ) {
       const a = req.headers['authorization'].replace(/ +/g," ").split(" ");
       req.auth = {
         type: a[0],
@@ -69,13 +68,14 @@ var HttpDispatcher = function(configurazione) {
       };
       if ( req.auth.type == 'Bearer' ) {
         try {
-          const jwt = req.auth.value;
-          const header = Buffer.from(jwt.split('.')[0], 'base64').toString('utf8');
-          const token = Buffer.from(jwt.split('.')[1], 'base64').toString('utf8');
+          const jwt = req.auth.value.split('.');
+          const header = Buffer.from(jwt[0], 'base64').toString('utf8');
+          const token = Buffer.from(jwt[1], 'base64').toString('utf8');
           req.user = JSON.parse(token);
-          req.user.token = jwt;
+          req.user.token = req.auth.value;
         } catch(e) {
         }
+        console.log(req.user)
       }
     }
   };
@@ -215,7 +215,7 @@ HttpDispatcher.prototype.start = function(cfg) {
 };
 
 HttpDispatcher.prototype.DataType = function(req,data) {
-  var mime = req.headers['content-type'];
+  var mime = req.headers['content-type'] || false;
   var ext = mimeType.extension(mime)
   req.bodyType = {
     ext: ext,
@@ -404,12 +404,11 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       }
       return;
     }
-    var ft = req.cfg.dispatcher.DataType(req,file);
     const status = 200;
     const l = Buffer.byteLength(file);
     res.writeHeader(status, {
       'Content-Length': l,
-      'Content-Type': ft.mime
+      'Content-Type': mimeType.lookup(filename)
     });
     res.write(file, 'binary');
     res.end();
