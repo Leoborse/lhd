@@ -84,7 +84,7 @@ var HttpDispatcher = function(configurazione) {
   this.pre = [];
   if ( config && config.apiPaths && config.apiPaths.length ) {
     for ( var i=0; i<config.apiPaths.length; i++) {
-      this.pre.push( {e: new RegExp('^'+config.apiPaths[i]), r:''} );
+      this.pre.push( {e: new RegExp('^'+config.apiPaths[i]+'/'), r:'/'} );
     }
     cfg.log({
       status: "Info",
@@ -270,7 +270,8 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   req.on('data', function(data) {
     if ( dl == 0 ) {
       var ft = req.cfg.dispatcher.DataType(req,data);
-      req.maxlen = req.cfg.dispatcherConfig.maxlen[ft.mime] || req.cfg.dispatcherConfig.maxlen['default'];
+      req.maxlen =  req.cfg.dispatcherConfig.maxlen[ft.mime] ||
+                    req.cfg.dispatcherConfig.maxlen['default'];
     }
     dl += data.length;
     if ( dl > req.maxlen ) {
@@ -291,12 +292,13 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
 
 HttpDispatcher.prototype.url = urlparser;
 
-HttpDispatcher.prototype.response = function(status,obj,req,res){
-  const rsp = typeof obj == 'string' ? obj : JSON.stringify(obj);
-  const l = Buffer.byteLength(rsp);
+HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
+  const type = ct || 'application/json; charset=utf-8'
+  const rsp = Buffer.isBuffer(obj) || typeof obj == 'string' ? obj : Buffer.from(obj)
+  const l = rsp.length // Buffer.byteLength(rsp);
   let head = {
     'X-Robots-Tag': ['noarchive', 'noindex, nofollow'],
-    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Type': type,
     'Cache-Control': ['no-cache', // RFC7234, https://tools.ietf.org/html/rfc7234
             'no-store', 'no-transform', 'private'],
     'Content-Length': l,
@@ -306,7 +308,8 @@ HttpDispatcher.prototype.response = function(status,obj,req,res){
     head.Location = rsp
   const t0 = (new Date()).getTime() - req.StartUpTime;
   res.writeHead(status, head);
-  res.end(rsp);
+  res.write(rsp, 'binary');
+  res.end();
   const t = (new Date()).getTime() - req.StartUpTime;
   req.cfg.log({
     name: req.cfg.name,
@@ -318,6 +321,7 @@ HttpDispatcher.prototype.response = function(status,obj,req,res){
     timems: t,
     timefbms: t0,
     url: req.url,
+    type: type,
     user: req.user.sub
   });
   req.chain.next(req,res);
@@ -421,11 +425,12 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       return;
     }
     var ft = req.cfg.dispatcher.DataType(req,file);
+    const type = ft.mime
     const status = 200;
     const l = Buffer.byteLength(file);
     res.writeHeader(status, {
       'Content-Length': l,
-      'Content-Type': ft.mime
+      'Content-Type': type
     });
     res.write(file, 'binary');
     res.end();
@@ -440,6 +445,7 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       timems: t,
       timefbms: t0,
       url: req.url,
+      type: type,
       user: req.user.sub
     });
   });
