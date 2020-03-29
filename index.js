@@ -1,3 +1,9 @@
+/*!
+ * lhd
+ * Copyright(c) 2019 Leonardo Borselli
+ * MIT Licensed
+ */
+
 const fs          = require('fs');
 const http        = require('http');
 const https       = require('https');
@@ -214,29 +220,6 @@ HttpDispatcher.prototype.start = function(config) {
   });
 };
 
-HttpDispatcher.prototype.DataType = function(req,data) {
-  req.bodyType = {
-    ext: ext,
-    mime: 'default'
-  }
-  var mime = req.headers['content-type'];
-  if ( typeof mime == 'string' )
-    mime = mime.split(';')[0]
-  if ( mime == 'multipart/form-data') {
-    req.bodyType = {
-      ext: ext,
-      mime: mime
-    }
-  }
-  var ext = mimeType.extension(mime)
-  if ( ext )
-    req.bodyType = {
-      ext: ext,
-      mime: mimeType.lookup(ext)
-    }
-  return req.bodyType;
-}
-
 HttpDispatcher.prototype.dispatch = function(req, res) {
   req.cfg.dispatcher = req.cfg.dispatcher || this;
   req.fullURL = req.url;
@@ -264,19 +247,39 @@ HttpDispatcher.prototype.dispatch = function(req, res) {
   req.chain.next(req, res);
 };
 
+//*
+HttpDispatcher.prototype.DataType = function(req,data) {
+/*/
+HttpDispatcher.prototype.DataType = async function(req,data) {
+  const FileType = require('file-type');
+  var test = await FileType.fromBuffer(data)
+  if ( test ) {
+    return test.mime
+  }
+//*/
+  var mime = req.headers['content-type'];
+  if ( typeof mime == 'string' )
+    mime = mime.split(';')[0]
+  if ( mime == 'multipart/form-data')
+    return mime
+  return mimeType.lookup(mimeType.extension(mime))
+}
+
+
 HttpDispatcher.prototype.getBody =  function(req, res) {
   var chunks = [];
   var dl = 0 ;
   req.on('data', function(data) {
     if ( dl == 0 ) {
-      var ft = req.cfg.dispatcher.DataType(req,data);
-      req.maxlen =  req.cfg.dispatcherConfig.maxlen[ft.mime] ||
+      var tmp = data.subarray(0,20)
+      req.bodyType = req.cfg.dispatcher.DataType(req,data);
+      req.maxlen =  req.cfg.dispatcherConfig.maxlen[req.bodyType] ||
                     req.cfg.dispatcherConfig.maxlen['default'];
     }
     dl += data.length;
     if ( dl > req.maxlen ) {
-      req.error = {ok:413, text: 'Payload Too Large', ft: ft};
-      req.cfg.dispatcher.response(req.error.ok,req.error,req,res);
+      req.error = {ok:'413', text: 'Payload Too Large', 'Content-Type': req.bodyType};
+      req.cfg.dispatcher.response(req.error.ok,JSON.stringify(req.error),req,res);
       req.chain.next(req,res);
     } else {
       chunks.push(data);
@@ -286,6 +289,40 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
     req.bodyBuffer = Buffer.concat(chunks);
     req.body = req.bodyBuffer.toString();
     req.bodyData = querystring.parse(req.body);
+    req.bodyBufferParts = {}
+
+    if ( req.bodyType === 'multipart/form-data' ) {
+      const sep = "--"+(req.headers['content-type'].split(";")[1]).split("=")[1]
+      const sepl = sep.length
+      const re = {
+        enc: 'utf-8',
+        nl:       "\r\n",
+        name:     new RegExp(' name="([^\"]+)"'),
+        filename: new RegExp(' filename="([^\"]+)"'),
+        type:     new RegExp('Content-Type: (.+)')
+      }
+      var buf = req.bodyBuffer
+      var fine = buf.indexOf(sep)
+      while ( fine != -1 ) {
+        var inizio = fine + sepl
+        fine = buf.indexOf(sep,inizio)
+        if ( fine != -1 ) {
+          inizio += re.nl.length
+          fine = buf.indexOf(re.nl,inizio)
+          var cd = buf.toString(re.enc,inizio,fine)
+          var name = cd.match(re.name)[1]
+          if ( cd.match(re.filename) ) {
+            inizio = fine + re.nl.length
+            fine = buf.indexOf(re.nl,inizio)
+            cd = buf.toString(re.enc,inizio,fine)
+            req.bodyBufferParts.type = cd.match(re.type)[1]
+          }
+          inizio = fine+2*re.nl.length
+          fine = buf.indexOf(sep,inizio)
+          req.bodyBufferParts[name] = buf.subarray(inizio,fine-re.nl.length)
+        }
+      }
+    }
     req.chain.next(req,res);
   });
 }
@@ -388,7 +425,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         message: e.message
       }
     };
-    cfg.log(rsp);
+    this.cfg.log(rsp);
     err(rsp);
   });
   if ( datb.length > 0 )
@@ -424,8 +461,7 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       }
       return;
     }
-    var ft = req.cfg.dispatcher.DataType(req,file);
-    const type = ft.mime
+    const type = mimeType.contentType(path.extname(filename))
     const status = 200;
     const l = Buffer.byteLength(file);
     res.writeHeader(status, {
