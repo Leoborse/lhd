@@ -4,6 +4,7 @@
  * MIT Licensed
  */
 
+const crypto      = require('crypto');
 const fs          = require('fs');
 const http        = require('http');
 const https       = require('https');
@@ -15,14 +16,33 @@ const urlparser   = require('url');
 var HttpDispatcher = function(configurazione) {
   configurazione = configurazione || {};
   configurazione.dispatcher = configurazione.dispatcher || this;
-  configurazione.log = configurazione.log || console.log;
+  configurazione.log = configurazione.log ||
+          function(m){console.log(JSON.stringify(m))};
   configurazione.uuid = configurazione.uuid || function() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-      return v.toString(16).toLowerCase(); //Lowercase ITU X.667 §6.5.4
-    })
+    //Lowercase ITU X.667 §6.5.4 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+    var hs = crypto.randomBytes(16).toString("hex").toLowerCase();
+    var u = hs.substring(0,8) + "-" +
+            hs.substring(8,12) + "-" +
+            "4" + hs.substring(13,16) + "-" +
+            (parseInt('0x'+hs.substring(16,17))&0x3|0x8).toString(16) +
+            hs.substring(17,20) + "-" +
+            hs.substring(20);
+    return u
   };
-  this.cfg = configurazione;
+
+  this.cfg = configurazione
+  this.cfg.header = this.cfg.header || {
+    'X-Robots-Tag': [
+      'noarchive',
+      'noindex, nofollow'
+    ],
+    'Cache-Control': [
+      'no-cache', // RFC7234, https://tools.ietf.org/html/rfc7234
+      'no-store',
+      'no-transform',
+      'private'
+    ]
+  }
   let cfg = this.cfg;
   try {
     var lcfg = JSON.parse(fs.readFileSync( 'package.json' ));
@@ -62,29 +82,42 @@ var HttpDispatcher = function(configurazione) {
     }
   };
 
+// xxxx autehntication
   this.auth = function(req, res) {
     req.user = {
       sub: "Anonymous"
-    };
-    if ( ! req.headers ) return;
+    }
+    if ( ! req.headers ) return
     if ( req.headers['authorization'] ) {
-      const a = req.headers['authorization'].replace(/ +/g," ").split(" ");
+      const a = req.headers['authorization'].replace(/ +/g," ").split(" ")
       req.auth = {
-        type: a[0],
+        type: a[0].toLowerCase(),
         value: a[1]
-      };
-      if ( req.auth.type == 'Bearer' ) {
+      }
+      if ( req.auth.type == 'bearer' ) {
         try {
-          const jwt = req.auth.value;
+          const jwt = req.auth.value
 //          const header = Buffer.from(jwt.split('.')[0], 'base64').toString('utf8');
-          const token = Buffer.from(jwt.split('.')[1], 'base64').toString('utf8');
-          req.user = JSON.parse(token);
-          req.user.token = jwt;
+          const token = Buffer.from(jwt.split('.')[1], 'base64').toString('utf8')
+          req.user = JSON.parse(token)
+          req.user.token = req.auth.value
+          req.user.type = req.auth.type
         } catch(e) {
+        }
+      } else if ( req.auth.type == 'basic' ) {
+        var cr = Buffer.from(req.auth.value,'base64').toString('utf8')
+        var un = cr.split(':',1)[0]
+        req.user = {
+          sub: un,
+          pwd: cr.substr(un.length+1),
+          up: cr,
+          fiscal_number: un,
+          token: req.auth.value,
+          type: req.auth.type
         }
       }
     }
-  };
+  }
 
   // Prefix paths
   this.pre = [];
@@ -235,7 +268,6 @@ HttpDispatcher.prototype.dispatch = function(req, res) {
   for ( var i = 0; i<this.pre.length; i++ ) {
     req.url = req.url.replace(this.pre[i].e,this.pre[i].r);
   }
-
   // Estrae eventuali parametri di autenticazione JWT o x_rtsysid
   // e li inserisce in req.user
   this.auth(req,res);
@@ -244,8 +276,9 @@ HttpDispatcher.prototype.dispatch = function(req, res) {
   req.cfg.dispatcher.getFilters(req, 'before');
   req.cfg.dispatcher.getListener(req);
   req.cfg.dispatcher.getFilters(req, 'after');
+
   req.chain.next(req, res);
-};
+}
 
 //*
 HttpDispatcher.prototype.DataType = function(req,data) {
@@ -271,7 +304,6 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   var dl = 0 ;
   req.on('data', function(data) {
     if ( dl == 0 ) {
-      var tmp = data.subarray(0,20)
       req.bodyType = req.cfg.dispatcher.DataType(req,data);
       req.maxlen =  req.cfg.dispatcherConfig.maxlen[req.bodyType] ||
                     req.cfg.dispatcherConfig.maxlen['default'];
@@ -330,17 +362,11 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
 HttpDispatcher.prototype.url = urlparser;
 
 HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
-  const type = ct || 'application/json; charset=utf-8'
-  const rsp = Buffer.isBuffer(obj) || typeof obj == 'string' ? obj : Buffer.from(obj)
-  const l = rsp.length // Buffer.byteLength(rsp);
-  let head = {
-    'X-Robots-Tag': ['noarchive', 'noindex, nofollow'],
-    'Content-Type': type,
-    'Cache-Control': ['no-cache', // RFC7234, https://tools.ietf.org/html/rfc7234
-            'no-store', 'no-transform', 'private'],
-    'Content-Length': l,
-    'ETag': [req.cfg.name, req.cfg.version, req.reqid].join('/')
-  };
+  const rsp = Buffer.isBuffer(obj) || typeof obj == 'string' ? obj : JSON.stringify(obj)
+  var head = JSON.parse(JSON.stringify(req.cfg.header))
+  head['Content-Type'] = ct || 'application/json; charset=utf-8'
+  head['Content-Length'] = rsp.length
+  head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
   if ( status == 301 || status == 302 )
     head.Location = rsp
   const t0 = (new Date()).getTime() - req.StartUpTime;
@@ -354,11 +380,11 @@ HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
     reqid: req.reqid,
     status: status,
     method: req.method,
-    length: l,
+    length: head['Content-Length'],
     timems: t,
     timefbms: t0,
     url: req.url,
-    type: type,
+    type: head['Content-Type'],
     user: req.user.sub
   });
   req.chain.next(req,res);
@@ -381,9 +407,9 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
       datb = dat;
     } else {
       if ( opt.headers['Content-Type'] == 'application/x-www-form-urlencoded' ) {
-        var datb = querystring.stringify(dat);
+        datb = querystring.stringify(dat);
       } else {
-        var datb = JSON.stringify(dat);
+        datb = JSON.stringify(dat);
       }
     }
   }
@@ -397,11 +423,13 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         data+=d;
       })
       .on('end', () => {
+        var d = {}
         try {
-          cb(JSON.parse(data));
+          d = JSON.parse(data)
         } catch(e){
-          cb(data);
+          d = data;
         }
+        cb(d)
       });
     } else {
       var rsp = {
@@ -414,7 +442,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         }
       };
       this.cfg.log(rsp);
-      if ( typeof cbe == 'function' ) cbe(rsp);
+      if ( typeof err == 'function' ) err(rsp);
     }
   }).on('error', (e) => {
     var rsp = {
@@ -440,34 +468,26 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
   var url = urlparser.parse(req.url, true);
 
   var errorListener = this.errorListener;
-  var filename      = path.join(this.staticDirname,
-                      path.relative(this.staticUrlPrefix, url.pathname));
+  var pr = path.relative(this.staticUrlPrefix, url.pathname)
+  pr = pr != '' ? pr : "/"
+  var filename      = path.join(this.staticDirname,pr)
   if (filename.indexOf(this.staticDirname) !== 0) {
     errorListener(req, res);
     return;
   }
+  filename = filename.replace(/\/$/,"/index.html")
   const t0 = (new Date()).getTime() - req.StartUpTime;
   fs.readFile(filename, function(err, file) {
     if(err) {
-      if ( url.pathname.match(/\.[^\/]*$/) ) {  // Finisce con un nome file
-        errorListener(req, res);
-        return;
-      } else if ( url.pathname.match(/\/$/) ) { // Finisce con /
-        req.url += 'index.html'
-        req.cfg.dispatcher.staticListener(req,res);
-      } else {                                  // Non ha estensione, finisce con nome cartella
-        req.url += '/'
-        req.cfg.dispatcher.redirect(302,req.url,req,res);
-      }
+      req.cfg.dispatcher.redirect(404,'{"text": "not found", "url":"'+req.url+'", "url":"'+req.url+'", "fn": "'+filename+'"}',req,res);
       return;
     }
-    const type = mimeType.contentType(path.extname(filename))
     const status = 200;
-    const l = Buffer.byteLength(file);
-    res.writeHeader(status, {
-      'Content-Length': l,
-      'Content-Type': type
-    });
+    var head = JSON.parse(JSON.stringify(req.cfg.header))
+    head['Content-Type'] = mimeType.contentType(path.extname(filename))
+    head['Content-Length'] = Buffer.byteLength(file)
+    head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
+    res.writeHeader(status, head);
     res.write(file, 'binary');
     res.end();
     const t = (new Date()).getTime() - req.StartUpTime;
@@ -477,15 +497,16 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       reqid: req.reqid,
       status: status,
       method: req.method,
-      length: l,
+      length: head['Content-Length'],
       timems: t,
       timefbms: t0,
       url: req.url,
-      type: type,
+      type: head['Content-Type'],
       user: req.user.sub
     });
   });
-};
+
+}
 
 HttpDispatcher.prototype.getListener = function(req, type) {
   const method = typeof type !== 'undefined' ? type : req.method.toLowerCase();
