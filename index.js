@@ -12,12 +12,14 @@ const mimeType    = require('mime-types');
 const path        = require('path');
 const querystring = require('querystring');
 const urlparser   = require('url');
+const jwa         = require('jwa');
+
 
 var HttpDispatcher = function(configurazione) {
   configurazione = configurazione || {};
   configurazione.dispatcher = configurazione.dispatcher || this;
   configurazione.log = configurazione.log ||
-          function(m){console.log(JSON.stringify(m))};
+                function(m){console.log(JSON.stringify(m))};
   configurazione.uuid = configurazione.uuid || function() {
     //Lowercase ITU X.667 §6.5.4 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
     var hs = crypto.randomBytes(16).toString("hex").toLowerCase();
@@ -28,10 +30,8 @@ var HttpDispatcher = function(configurazione) {
             hs.substring(17,20) + "-" +
             hs.substring(20);
     return u
-  };
-
-  this.cfg = configurazione
-  this.cfg.header = this.cfg.header || {
+  }
+  configurazione.server.header = configurazione.server.header || {
     'X-Robots-Tag': [
       'noarchive',
       'noindex, nofollow'
@@ -43,6 +43,7 @@ var HttpDispatcher = function(configurazione) {
       'private'
     ]
   }
+  this.cfg = configurazione
   let cfg = this.cfg;
   try {
     var lcfg = JSON.parse(fs.readFileSync( 'package.json' ));
@@ -61,7 +62,7 @@ var HttpDispatcher = function(configurazione) {
     }
   });
 
-  var config = cfg.dispatcherConfig;
+  var config = cfg.server;
   this.services = [];
   this.listeners = {
   };
@@ -82,42 +83,92 @@ var HttpDispatcher = function(configurazione) {
     }
   };
 
-// xxxx autehntication
-  this.auth = function(req, res) {
-    req.user = {
-      sub: "Anonymous"
-    }
-    if ( ! req.headers ) return
-    if ( req.headers['authorization'] ) {
-      const a = req.headers['authorization'].replace(/ +/g," ").split(" ")
-      req.auth = {
-        type: a[0].toLowerCase(),
-        value: a[1]
-      }
-      if ( req.auth.type == 'bearer' ) {
-        try {
-          const jwt = req.auth.value
-//          const header = Buffer.from(jwt.split('.')[0], 'base64').toString('utf8');
-          const token = Buffer.from(jwt.split('.')[1], 'base64').toString('utf8')
-          req.user = JSON.parse(token)
-          req.user.token = req.auth.value
-          req.user.type = req.auth.type
-        } catch(e) {
+/*******************************************************************************
+Inizializzazione oauth2
+*******************************************************************************/
+  function initoauth(r,cs){
+    cs.auth = cs.auth || {}
+    if ( ! cs.openid )
+      return
+    if ( typeof cs.openid == 'string' )
+      cs.openid = [cs.openid]
+    const oid = JSON.parse(JSON.stringify(cs.openid))
+    while (oid.length > 0) {
+      r(oid.pop(),
+        (oidc) => {
+          authserver(r,cs,oidc)
+        },
+        (err) => {
+          ie(err,r,c)
         }
-      } else if ( req.auth.type == 'basic' ) {
-        var cr = Buffer.from(req.auth.value,'base64').toString('utf8')
-        var un = cr.split(':',1)[0]
-        req.user = {
-          sub: un,
-          pwd: cr.substr(un.length+1),
-          up: cr,
-          fiscal_number: un,
-          token: req.auth.value,
-          type: req.auth.type
-        }
-      }
+      )
     }
   }
+
+  function authserver(r,cs,oidc){
+    function rsaPublicKeyPem(modulus_b64, exponent_b64) {
+      var modulus_hex = Buffer.from(modulus_b64, 'base64').toString('hex')
+      var exponent_hex = Buffer.from(exponent_b64, 'base64').toString('hex')
+
+      const prepadSigned = function(hexStr) {
+        var msb = hexStr[0]
+        if (msb < '0' || msb > '7') {
+          return '00'+hexStr;
+        } else {
+          return hexStr;
+        }
+      }
+      const toHexDER = function(tag,value){ // ASN.1 DER TLV = Tag Length Value
+        var hex = prepadSigned(value) // hex value plus left padding if required
+        var n = hex.length/2
+        var n_hex = n.toString(16) // hex length value
+        if (n_hex.length%2) n_hex = '0'+n_hex; // padding if required
+        if ( n > 127 ) n_hex = (128+n_hex.length/2).toString(16)+n_hex // ASN.1 DER length
+        return tag + n_hex + hex
+      }
+
+      var hexDER = toHexDER('30',
+        toHexDER('02',modulus_hex) +
+        toHexDER('02',exponent_hex)
+      )
+      var der_b64 = Buffer.from(hexDER, 'hex').toString('base64');
+
+      var pem = '-----BEGIN RSA PUBLIC KEY-----\n'
+          + der_b64.match(/.{1,64}/g).join('\n')
+          + '\n-----END RSA PUBLIC KEY-----\n';
+      return pem
+    }
+
+    var iss = oidc.issuer
+    r(oidc.jwks_uri,
+      (rsp) => {
+        cs.auth[iss] = {
+          keys: {}
+        }
+        while( rsp.keys.length > 0 ) {
+          var k = rsp.keys.pop()
+          cfg.log(k)
+          k.pem = rsaPublicKeyPem(k.n,k.e)
+          cs.auth[iss].keys[k.kid] = k
+        }
+      },(err) => {
+        ie(err,r,c)
+      }
+    )
+  }
+
+  function ie(m,r,c){
+    cfg.log({
+      status: "Error",
+      code: 500,
+      msg: m
+    })
+    setTimeout(init, 60*1000,r,c)
+  }
+
+
+  // Inizializzazione oauth2
+  initoauth(this.request,this.cfg.server)
 
   // Prefix paths
   this.pre = [];
@@ -144,7 +195,62 @@ var HttpDispatcher = function(configurazione) {
       }
     }
   }
-};
+}
+
+HttpDispatcher.prototype.auth = function(req, res) {
+  req.user = {
+    sub: "Anonymous"
+  }
+  if ( ! req.headers ) return
+  if ( req.headers['authorization'] ) {
+    const a = req.headers['authorization'].replace(/ +/g," ").split(" ")
+    req.auth = {
+      type: a[0].toLowerCase(),
+      value: a[1]
+    }
+    if ( req.auth.type == 'bearer' ) {
+      try {
+        const jwt = req.auth.value
+        const header = Buffer.from(jwt.split('.')[0], 'base64').toString('utf8')
+        const token = Buffer.from(jwt.split('.')[1], 'base64').toString('utf8')
+        var user = JSON.parse(token)
+        user.header =  JSON.parse(header)
+        user.token = req.auth.value
+        user.type = req.auth.type
+        // Verifica token
+        const obj = user.token
+        const key = req.cfg.server.auth[user.iss].keys[user.header.kid]
+        const alg = key.alg // user.header.alg
+        var firma = obj.split('.')[2]
+        var dati = obj.split('.', 2).join('.')
+        var algo = jwa(alg);
+        if ( alg != 'none' && algo.verify(dati, firma, key.pem) ) {
+          req.user = JSON.parse(JSON.stringify(user))
+        }
+      } catch(e) {
+        req.cfg.log({
+          reqid: req.reqid,
+          msg: "error parsing token",
+          value: e
+        })
+      }
+    } else if ( req.auth.type == 'basic' ) {
+      var cr = Buffer.from(req.auth.value,'base64').toString('utf8')
+      var usr = cr.split(':',1)[0]
+      var pwd = cr.substr(un.length+1)
+      req.user = {
+        sub: usr,
+        pwd: pwd,
+        fiscal_number: usr,
+        token: req.auth.value,
+        type: req.auth.type
+      }
+      req.cfg.log(req.user)
+    }
+  }
+}
+
+
 
 HttpDispatcher.prototype.log = function(arg) {
   this.cfg.log(arg);
@@ -305,8 +411,8 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   req.on('data', function(data) {
     if ( dl == 0 ) {
       req.bodyType = req.cfg.dispatcher.DataType(req,data);
-      req.maxlen =  req.cfg.dispatcherConfig.maxlen[req.bodyType] ||
-                    req.cfg.dispatcherConfig.maxlen['default'];
+      req.maxlen =  req.cfg.server.maxlen[req.bodyType] ||
+                    req.cfg.server.maxlen['default'];
     }
     dl += data.length;
     if ( dl > req.maxlen ) {
@@ -363,31 +469,34 @@ HttpDispatcher.prototype.url = urlparser;
 
 HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
   const rsp = Buffer.isBuffer(obj) || typeof obj == 'string' ? obj : JSON.stringify(obj)
-  var head = JSON.parse(JSON.stringify(req.cfg.header))
+  var head = req.cfg.server.header
   head['Content-Type'] = ct || 'application/json; charset=utf-8'
   head['Content-Length'] = rsp.length
   head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
   if ( status == 301 || status == 302 )
     head.Location = rsp
-  const t0 = (new Date()).getTime() - req.StartUpTime;
   res.writeHead(status, head);
   res.write(rsp, 'binary');
   res.end();
-  const t = (new Date()).getTime() - req.StartUpTime;
+  res.head = head
+  req.cfg.dispatcher.logger(req,res)
+  req.chain.next(req,res);
+}
+
+HttpDispatcher.prototype.logger = function(req,res){
   req.cfg.log({
     name: req.cfg.name,
     version: req.cfg.version,
     reqid: req.reqid,
-    status: status,
+    status: res.statusCode,
     method: req.method,
-    length: head['Content-Length'],
-    timems: t,
-    timefbms: t0,
+    length: res.head['Content-Length'],
+    timems: (new Date()).getTime() - req.StartUpTime,
     url: req.url,
-    type: head['Content-Type'],
+    type: res.head['Content-Type'],
+    remoteip: req.socket.remoteAddress,
     user: req.user.sub
   });
-  req.chain.next(req,res);
 }
 
 HttpDispatcher.prototype.redirect = function(status,url,req,res){
@@ -476,36 +585,22 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
     return;
   }
   filename = filename.replace(/\/$/,"/index.html")
-  const t0 = (new Date()).getTime() - req.StartUpTime;
   fs.readFile(filename, function(err, file) {
     if(err) {
       req.cfg.dispatcher.redirect(404,'{"text": "not found", "url":"'+req.url+'", "url":"'+req.url+'", "fn": "'+filename+'"}',req,res);
       return;
     }
     const status = 200;
-    var head = JSON.parse(JSON.stringify(req.cfg.header))
+    var head = JSON.parse(JSON.stringify(req.cfg.server.header))
     head['Content-Type'] = mimeType.contentType(path.extname(filename))
     head['Content-Length'] = Buffer.byteLength(file)
     head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
     res.writeHeader(status, head);
     res.write(file, 'binary');
     res.end();
-    const t = (new Date()).getTime() - req.StartUpTime;
-    req.cfg.log({
-      name: req.cfg.name,
-      version: req.cfg.version,
-      reqid: req.reqid,
-      status: status,
-      method: req.method,
-      length: head['Content-Length'],
-      timems: t,
-      timefbms: t0,
-      url: req.url,
-      type: head['Content-Type'],
-      user: req.user.sub
-    });
+    res.head = head
+    req.cfg.dispatcher.logger(req,res)
   });
-
 }
 
 HttpDispatcher.prototype.getListener = function(req, type) {
