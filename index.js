@@ -237,7 +237,7 @@ HttpDispatcher.prototype.auth = function(req, res) {
     } else if ( req.auth.type == 'basic' ) {
       var cr = Buffer.from(req.auth.value,'base64').toString('utf8')
       var usr = cr.split(':',1)[0]
-      var pwd = cr.substr(un.length+1)
+      var pwd = cr.substr(usr.length+1)
       req.user = {
         sub: usr,
         pwd: pwd,
