@@ -81,7 +81,7 @@ var HttpDispatcher = function(configurazione) {
       var status = 200;
       this.response(status,req.error,req,res);
     }
-  };
+  }
 
 /*******************************************************************************
 Inizializzazione oauth2
@@ -187,11 +187,11 @@ Inizializzazione oauth2
   this.maxlen = {
     'application/json': 10e3,
     'default': 0
-  };
-  for(var p in this.maxlen) {
-    if (this.maxlen.hasOwnProperty(p)) {
-      if( config && typeof config.maxlen[p] == 'number') {
-        this.maxlen[p] = config.maxlen[p];
+  }
+  for(var p in cfg.server.maxlen) {
+    if (cfg.server.maxlen.hasOwnProperty(p)) {
+      if( typeof cfg.server.maxlen[p] == 'number') {
+        this.maxlen[p] = cfg.server.maxlen[p];
       }
     }
   }
@@ -467,17 +467,30 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
 
 HttpDispatcher.prototype.url = urlparser;
 
+HttpDispatcher.prototype.responseJSON = function(status,obj,req,res,ct){
+  const rsp = status == 200 ? obj :
+    {
+      status: status,
+      rsp:    obj
+    }
+  req.cfg.dispatcher.response(status,rsp,req,res)
+}
+
 HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
-  const rsp = Buffer.isBuffer(obj) || typeof obj == 'string' ? obj : JSON.stringify(obj)
+  var rsp = obj
+  if ( ! Buffer.isBuffer(obj) ) {
+    var rr = typeof obj == 'string' ? obj : JSON.stringify(obj)
+    rsp = new Buffer.from(rr)
+  }
   var head = req.cfg.server.header
   head['Content-Type'] = ct || 'application/json; charset=utf-8'
-  head['Content-Length'] = rsp.length
+  head['Content-Length'] = Buffer.byteLength(rsp, 'utf8')
   head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
   if ( status == 301 || status == 302 )
     head.Location = rsp
   res.writeHead(status, head);
-  res.write(rsp, 'binary');
-  res.end();
+  res.write(rsp, 'utf8');
+  res.end()
   res.head = head
   req.cfg.dispatcher.logger(req,res)
   req.chain.next(req,res);
