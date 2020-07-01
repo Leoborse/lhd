@@ -1,6 +1,6 @@
 {
   "name": "lhd",
-  "version": "0.4.10",
+  "version": "0.4.11",
   "description": "(Another) Light HTTP(s) Dispatcher",
   "main": "src/lhd.js",
   "scripts": {
@@ -22,8 +22,8 @@
   },
   "homepage": "https://github.com/Leoborse/lhd#readme",
   "dependencies": {
-    "jwa": "latest",
-    "mime-types": "latest"
+    "jwa": "^2.0.0",
+    "mime-types": "^2.1.27"
   },
   "files": [
     "LICENSE",
