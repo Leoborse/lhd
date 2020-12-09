@@ -141,8 +141,11 @@ Inizializzazione oauth2
         }
         while( rsp.keys.length > 0 ) {
           var k = rsp.keys.pop()
-          k.pem = rsaPublicKeyPem(k.n,k.e)
-          cs.auth[iss].keys[k.kid] = k
+          console.log(k.kty, iss)
+          if ( k.kty == "RSA" ) {
+            k.pem = rsaPublicKeyPem(k.n,k.e)
+            cs.auth[iss].keys[k.kid] = k
+          }
         }
       },(err) => {
         ie(err,r,c)
