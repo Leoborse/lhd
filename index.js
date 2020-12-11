@@ -95,7 +95,7 @@ Inizializzazione oauth2
           authserver(r,cs,oidc)
         },
         (err) => {
-          ie(err,r,c)
+          ie(err,r,cs)
         }
       )
     }
@@ -150,18 +150,18 @@ Inizializzazione oauth2
           }
         }
       },(err) => {
-        ie(err,r,c)
+        ie(err,r,cs)
       }
     )
   }
 
   function ie(m,r,c){
-    csrv.log({
+    c.log({
       status: "Error",
       code: 500,
       msg: m
     })
-    setTimeout(init, 60*1000,r,c)
+    setTimeout(initoauth, 60*1000,r,c)
   }
 
 
@@ -559,7 +559,6 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
           action: opt
         }
       }
-      this.cfg.log(rsp)
       if ( typeof err == 'function' ) err(rsp)
     }
   }).on('error', (e) => {
@@ -571,7 +570,6 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         message: e.message
       }
     }
-    this.cfg.log(rsp)
     err(rsp)
   })
   if ( datb.length > 0 )
