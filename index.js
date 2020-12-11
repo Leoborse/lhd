@@ -145,7 +145,10 @@ Inizializzazione oauth2
           var k = rsp.keys.pop()
           var klog = {
             iss: iss,
-            key: k,
+            key: {
+              id: k.kid,
+              type: k.kty
+            },
             ok: false
           }
           if ( k.kty == 'RSA' ) {
