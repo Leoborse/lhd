@@ -16,10 +16,12 @@ const jwa         = require('jwa')
 
 
 var HttpDispatcher = function(csrv) {
+  csrv = csrv || {}
+  csrv.dispatcher = csrv.dispatcher || this
   csrv.log = csrv.log || function(m){console.log(JSON.stringify(m))}
   csrv.uuid = csrv.uuid || function() {
     //Lowercase ITU X.667 §6.5.4 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
-    var hs = crypto.randomBytes(16).toString("hex").toLowerCase();
+    var hs = crypto.randomBytes(16).toString("hex").toLowerCase()
     var u = hs.substring(0,8) + "-" +
             hs.substring(8,12) + "-" +
             "4" + hs.substring(13,16) + "-" +
@@ -28,7 +30,7 @@ var HttpDispatcher = function(csrv) {
             hs.substring(20)
     return u
   }
-  csrv.header = csrv.header || {
+  csrv.server.header = csrv.server.header || {
     'X-Robots-Tag': [
       'noarchive',
       'noindex, nofollow'
@@ -65,7 +67,7 @@ var HttpDispatcher = function(csrv) {
     {e: new RegExp('\/\.\/','g'), r: '/'},
     {e: new RegExp('\/\.\.\/','g'), r: '/'},
     {e: new RegExp('\/+','g'), r: '/'}
-  ];
+  ]
 
   this.errorListener = function(req, res) {
     if ( typeof req.error == 'undefined' ) {
@@ -116,7 +118,7 @@ Inizializzazione oauth2
         var hex = prepadSigned(value) // hex value plus left padding if required
         var n = hex.length/2
         var n_hex = n.toString(16) // hex length value
-        if (n_hex.length%2) n_hex = '0'+n_hex; // padding if required
+        if (n_hex.length%2) n_hex = '0'+n_hex // padding if required
         if ( n > 127 ) n_hex = (128+n_hex.length/2).toString(16)+n_hex // ASN.1 DER length
         return tag + n_hex + hex
       }
@@ -141,7 +143,8 @@ Inizializzazione oauth2
         }
         while( rsp.keys.length > 0 ) {
           var k = rsp.keys.pop()
-          if ( k.kty == "RSA" ) {
+          csrv.log(k.kty,iss)
+          if ( k.kty == 'RSA' ) {
             k.pem = rsaPublicKeyPem(k.n,k.e)
             cs.auth[iss].keys[k.kid] = k
           }
@@ -163,30 +166,30 @@ Inizializzazione oauth2
 
 
   // Inizializzazione oauth2
-  initoauth(this.request,csrv)
+  initoauth(this.request,csrv.server)
 
   // Prefix paths
   this.pre = []
-  if ( csrv && csrv.apiPaths && csrv.apiPaths.length ) {
-    for ( var i=0; i<csrv.apiPaths.length; i++) {
-      this.pre.push( {e: new RegExp('^'+csrv.apiPaths[i]+'/'), r:'/'} )
+  if ( csrv.server && csrv.server.apiPaths && csrv.server.apiPaths.length ) {
+    for ( var i=0; i<csrv.server.apiPaths.length; i++) {
+      this.pre.push( {e: new RegExp('^'+csrv.server.apiPaths[i]+'/'), r:'/'} );
     }
+    csrv.log({
+      status: "Info",
+      name: "Removed prefix(es)",
+      value: csrv.server.apiPaths
+    })
   }
-  csrv.log({
-    status: "Info",
-    name: "Removed prefix(es)",
-    value: csrv.apiPaths
-  })
 
   // Max file length
   this.maxlen = {
     'application/json': 10e3,
     'default': 0
   }
-  for(var p in csrv.maxlen) {
-    if (csrv.maxlen.hasOwnProperty(p)) {
-      if( typeof csrv.maxlen[p] == 'number') {
-        this.maxlen[p] = csrv.maxlen[p]
+  for(var p in csrv.server.maxlen) {
+    if (csrv.server.maxlen.hasOwnProperty(p)) {
+      if( csrv.server && typeof csrv.server.maxlen[p] == 'number') {
+        this.maxlen[p] = csrv.server.maxlen[p];
       }
     }
   }
@@ -214,7 +217,7 @@ HttpDispatcher.prototype.auth = function(req, res) {
         user.type = req.auth.type
         // Verifica token
         const obj = user.token
-        const key = req.cfg.auth[user.iss].keys[user.header.kid]
+        const key = req.cfg.server.auth[user.iss].keys[user.header.kid]
         const alg = key.alg // user.header.alg
         var firma = obj.split('.')[2]
         var dati = obj.split('.', 2).join('.')
@@ -223,7 +226,7 @@ HttpDispatcher.prototype.auth = function(req, res) {
           req.user = JSON.parse(JSON.stringify(user))
         }
       } catch(e) {
-        req.log({
+        req.cfg.log({
           reqid: req.reqid,
           msg: "error parsing token",
           value: e
@@ -240,9 +243,13 @@ HttpDispatcher.prototype.auth = function(req, res) {
         token: req.auth.value,
         type: req.auth.type
       }
-      req.log(req.user)
+      req.cfg.log(req.user)
     }
   }
+}
+
+HttpDispatcher.prototype.log = function(arg) {
+  this.cfg.log(arg)
 }
 
 HttpDispatcher.prototype.on = function(method, args) {
@@ -252,7 +259,7 @@ HttpDispatcher.prototype.on = function(method, args) {
     method: method,
     url: args.shift(),
     actions: [],
-  };
+  }
   args.forEach(function(entry) {
     azione.actions.push(entry.name)
   })
@@ -325,22 +332,21 @@ HttpDispatcher.prototype.onAuth = function(cb) {
   this.auth = cb
 }
 
-HttpDispatcher.prototype.start = function(config,onRequest) {
-  var proto = config.protocol == 'http:' ? http : https
-  proto.createServer(config.options, onRequest || this.dispatch)
-  .listen(config.tcp,function(){
+HttpDispatcher.prototype.start = function(config) {
+  var proto = config.server.protocol == 'http:' ? http : https
+  proto.createServer( (req,res) => {
+    // Gestione delle attività
+    req.cfg = config
+    req.reqid = config.uuid()
+    config.dispatcher.dispatch(req, res)
+  }).listen(config.server.tcp,function(){
     if ( this.listening ) {
       config.log({
         status: "Info",
         name: "lhd listener",
         value: {
-          protocol: config.protocol,
-          tcp: config.tcp,
-          options: config.options,
-          apiPaths: config.apiPaths,
-          maxlen: config.maxlen,
-          header: config.header,
-          auth: config.auth
+          server: config.server,
+          services: config.dispatcher.services
         }
       })
     }
@@ -348,10 +354,9 @@ HttpDispatcher.prototype.start = function(config,onRequest) {
 }
 
 HttpDispatcher.prototype.dispatch = function(req, res) {
-  req.cfg = this.cfg
   req.cfg.dispatcher = req.cfg.dispatcher || this
-  req.reqid = req.reqid || this.cfg.uuid()
-  req.log = req.log || this.cfg.log
+  req.reqid = req.reqid || req.cfg.uuid()
+  req.log = req.log || req.cfg.log
 
   req.fullURL = req.url
   req.StartUpTime = (new Date()).getTime()
@@ -382,7 +387,7 @@ HttpDispatcher.prototype.dispatch = function(req, res) {
 HttpDispatcher.prototype.DataType = function(req,data) {
 /*/
 HttpDispatcher.prototype.DataType = async function(req,data) {
-  const FileType = require('file-type');
+  const FileType = require('file-type')
   var test = await FileType.fromBuffer(data)
   if ( test ) {
     return test.mime
@@ -402,8 +407,8 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   req.on('data', function(data) {
     if ( dl == 0 ) {
       req.bodyType = req.cfg.dispatcher.DataType(req,data)
-      req.maxlen =  req.cfg.maxlen[req.bodyType] ||
-                    req.cfg.maxlen['default']
+      req.maxlen =  req.cfg.server.maxlen[req.bodyType] ||
+                    req.cfg.server.maxlen['default']
     }
     dl += data.length
     if ( dl > req.maxlen ) {
@@ -473,7 +478,7 @@ HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
     var rr = typeof obj == 'string' ? obj : JSON.stringify(obj)
     rsp = new Buffer.from(rr)
   }
-  var head = req.cfg.header
+  var head = req.cfg.server.header
   head['Content-Type'] = ct || 'application/json; charset=utf-8'
   head['Content-Length'] = Buffer.byteLength(rsp, 'utf8')
   head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
@@ -488,7 +493,7 @@ HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
 }
 
 HttpDispatcher.prototype.logger = function(req,res){
-  req.log({
+  req.cfg.log({
     name: req.cfg.name,
     version: req.cfg.version,
     reqid: req.reqid,
@@ -501,6 +506,10 @@ HttpDispatcher.prototype.logger = function(req,res){
     remoteip: req.socket.remoteAddress,
     user: req.user.sub
   })
+}
+
+HttpDispatcher.prototype.redirect = function(status,url,req,res){
+  req.cfg.dispatcher.response(status,url,req,res)
 }
 
 HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
@@ -591,7 +600,7 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       return
     }
     const status = 200
-    var head = JSON.parse(JSON.stringify(req.cfg.header))
+    var head = JSON.parse(JSON.stringify(req.cfg.server.header))
     head['Content-Type'] = mimeType.contentType(path.extname(filename))
     head['Content-Length'] = Buffer.byteLength(file)
     head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
@@ -600,7 +609,7 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
     res.end()
     res.head = head
     req.cfg.dispatcher.logger(req,res)
-  });
+  })
 }
 
 HttpDispatcher.prototype.getListener = function(req, type) {
@@ -649,7 +658,7 @@ HttpDispatcher.prototype.urlMatches = function(config, req) {
     return m
   }
   return config == url
-};
+}
 
 HttpDispatcher.prototype.urlManage = function(listen) {
   // Ricerco costrutti speciali nella url se è una stringa, i termini che
