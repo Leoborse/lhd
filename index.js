@@ -19,6 +19,7 @@ var HttpDispatcher = function(csrv) {
   csrv = csrv || {}
   csrv.dispatcher = csrv.dispatcher || this
   csrv.log = csrv.log || function(m){console.log(JSON.stringify(m))}
+  this.log = csrv.log
   csrv.uuid = csrv.uuid || function() {
     //Lowercase ITU X.667 §6.5.4 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
     var hs = crypto.randomBytes(16).toString("hex").toLowerCase()
@@ -30,7 +31,7 @@ var HttpDispatcher = function(csrv) {
             hs.substring(20)
     return u
   }
-  csrv.server.header = csrv.server.header || {
+  csrv.header = csrv.header || {
     'X-Robots-Tag': [
       'noarchive',
       'noindex, nofollow'
@@ -42,7 +43,6 @@ var HttpDispatcher = function(csrv) {
       'private'
     ]
   }
-  this.cfg = csrv
   try {
     var lcfg = JSON.parse(fs.readFileSync( 'package.json' ))
     csrv.name = lcfg.name
@@ -56,7 +56,7 @@ var HttpDispatcher = function(csrv) {
     value: {
       name: csrv.name,
       version: csrv.version,
-      environment: csrv.environment||'lhd',
+      environment: csrv.environment || 'none',
     }
   })
 
@@ -138,12 +138,12 @@ Inizializzazione oauth2
     var iss = oidc.issuer
     r(oidc.jwks_uri,
       (rsp) => {
-        cs.auth[iss] = {
+        cs.auth[oidc.issuer] = {
           keys: {}
         }
         while( rsp.keys.length > 0 ) {
           var k = rsp.keys.pop()
-          csrv.log(k.kty,iss)
+          csrv.log(k.kty+" "+iss)
           if ( k.kty == 'RSA' ) {
             k.pem = rsaPublicKeyPem(k.n,k.e)
             cs.auth[iss].keys[k.kid] = k
@@ -166,18 +166,18 @@ Inizializzazione oauth2
 
 
   // Inizializzazione oauth2
-  initoauth(this.request,csrv.server)
+  initoauth(this.request,csrv)
 
   // Prefix paths
   this.pre = []
-  if ( csrv.server && csrv.server.apiPaths && csrv.server.apiPaths.length ) {
-    for ( var i=0; i<csrv.server.apiPaths.length; i++) {
-      this.pre.push( {e: new RegExp('^'+csrv.server.apiPaths[i]+'/'), r:'/'} );
+  if ( csrv && csrv.apiPaths && csrv.apiPaths.length ) {
+    for ( var i=0; i<csrv.apiPaths.length; i++) {
+      this.pre.push( {e: new RegExp('^'+csrv.apiPaths[i]+'/'), r:'/'} );
     }
     csrv.log({
       status: "Info",
       name: "Removed prefix(es)",
-      value: csrv.server.apiPaths
+      value: csrv.apiPaths
     })
   }
 
@@ -186,10 +186,10 @@ Inizializzazione oauth2
     'application/json': 10e3,
     'default': 0
   }
-  for(var p in csrv.server.maxlen) {
-    if (csrv.server.maxlen.hasOwnProperty(p)) {
-      if( csrv.server && typeof csrv.server.maxlen[p] == 'number') {
-        this.maxlen[p] = csrv.server.maxlen[p];
+  for(var p in csrv.maxlen) {
+    if (csrv.maxlen.hasOwnProperty(p)) {
+      if( csrv && typeof csrv.maxlen[p] == 'number') {
+        this.maxlen[p] = csrv.maxlen[p];
       }
     }
   }
@@ -217,7 +217,7 @@ HttpDispatcher.prototype.auth = function(req, res) {
         user.type = req.auth.type
         // Verifica token
         const obj = user.token
-        const key = req.cfg.server.auth[user.iss].keys[user.header.kid]
+        const key = req.cfg.auth[user.iss].keys[user.header.kid]
         const alg = key.alg // user.header.alg
         var firma = obj.split('.')[2]
         var dati = obj.split('.', 2).join('.')
@@ -249,7 +249,7 @@ HttpDispatcher.prototype.auth = function(req, res) {
 }
 
 HttpDispatcher.prototype.log = function(arg) {
-  this.cfg.log(arg)
+  this.log(arg)
 }
 
 HttpDispatcher.prototype.on = function(method, args) {
@@ -333,13 +333,13 @@ HttpDispatcher.prototype.onAuth = function(cb) {
 }
 
 HttpDispatcher.prototype.start = function(config) {
-  var proto = config.server.protocol == 'http:' ? http : https
+  var proto = config.protocol == 'http:' ? http : https
   proto.createServer( (req,res) => {
     // Gestione delle attività
     req.cfg = config
     req.reqid = config.uuid()
     config.dispatcher.dispatch(req, res)
-  }).listen(config.server.tcp,function(){
+  }).listen(config.tcp,function(){
     if ( this.listening ) {
       config.log({
         status: "Info",
@@ -478,7 +478,7 @@ HttpDispatcher.prototype.response = function(status,obj,req,res,ct){
     var rr = typeof obj == 'string' ? obj : JSON.stringify(obj)
     rsp = new Buffer.from(rr)
   }
-  var head = req.cfg.server.header
+  var head = req.cfg.header
   head['Content-Type'] = ct || 'application/json; charset=utf-8'
   head['Content-Length'] = Buffer.byteLength(rsp, 'utf8')
   head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
@@ -600,7 +600,7 @@ HttpDispatcher.prototype.staticListener =  function(req, res) {
       return
     }
     const status = 200
-    var head = JSON.parse(JSON.stringify(req.cfg.server.header))
+    var head = JSON.parse(JSON.stringify(req.cfg.header))
     head['Content-Type'] = mimeType.contentType(path.extname(filename))
     head['Content-Length'] = Buffer.byteLength(file)
     head['ETag'] = [req.cfg.name, req.cfg.version, req.reqid].join('/')
