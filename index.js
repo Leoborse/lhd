@@ -579,7 +579,7 @@ HttpDispatcher.prototype.request = function(opt,dat,cbr,cbe){
         message: e.message
       }
     }
-    err(rsp)
+    if ( typeof err == 'function' ) err(rsp)
   })
   if ( datb.length > 0 )
     r.write(datb)
