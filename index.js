@@ -342,7 +342,7 @@ HttpDispatcher.prototype.onAuth = function(cb) {
 }
 
 HttpDispatcher.prototype.start = function(config) {
-  var proto = config.protocol == 'http:' ? http : https
+  var proto = config.protocol == 'https:' ? https : http
   proto.createServer( (req,res) => {
     // Gestione delle attività
     req.cfg = config
