@@ -416,8 +416,8 @@ HttpDispatcher.prototype.getBody =  function(req, res) {
   req.on('data', function(data) {
     if ( dl == 0 ) {
       req.bodyType = req.cfg.dispatcher.DataType(req,data)
-      req.maxlen =  req.cfg.server.maxlen[req.bodyType] ||
-                    req.cfg.server.maxlen['default']
+      req.maxlen =  req.cfg.maxlen[req.bodyType] ||
+                    req.cfg.maxlen['default']
     }
     dl += data.length
     if ( dl > req.maxlen ) {
