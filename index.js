@@ -13,6 +13,7 @@ const path        = require('path')
 const querystring = require('querystring')
 const urlparser   = require('url')
 const jwa         = require('jwa')
+const jwkToPem    = require('jwk-to-pem')
 
 
 var HttpDispatcher = function(csrv) {
@@ -64,9 +65,9 @@ var HttpDispatcher = function(csrv) {
   this.listeners = {}
   // Pulisce url con errori evidenti // /./ /../
   this.clean = [
-    {e: new RegExp('\/\.\/','g'), r: '/'},
-    {e: new RegExp('\/\.\.\/','g'), r: '/'},
-    {e: new RegExp('\/+','g'), r: '/'}
+    {e: new RegExp(/\/\.\//,'g'), r: '/'},
+    {e: new RegExp(/\/\.\.\//,'g'), r: '/'},
+    {e: new RegExp(/\/+/,'g'), r: '/'}
   ]
 
   this.errorListener = function(req, res) {
@@ -102,39 +103,6 @@ Inizializzazione oauth2
   }
 
   function authserver(r,cs,oidc){
-    function rsaPublicKeyPem(modulus_b64, exponent_b64) {
-      var modulus_hex = Buffer.from(modulus_b64, 'base64').toString('hex')
-      var exponent_hex = Buffer.from(exponent_b64, 'base64').toString('hex')
-
-      const prepadSigned = function(hexStr) {
-        var msb = hexStr[0]
-        if (msb < '0' || msb > '7') {
-          return '00'+hexStr
-        } else {
-          return hexStr
-        }
-      }
-      const toHexDER = function(tag,value){ // ASN.1 DER TLV = Tag Length Value
-        var hex = prepadSigned(value) // hex value plus left padding if required
-        var n = hex.length/2
-        var n_hex = n.toString(16) // hex length value
-        if (n_hex.length%2) n_hex = '0'+n_hex // padding if required
-        if ( n > 127 ) n_hex = (128+n_hex.length/2).toString(16)+n_hex // ASN.1 DER length
-        return tag + n_hex + hex
-      }
-
-      var hexDER = toHexDER('30',
-        toHexDER('02',modulus_hex) +
-        toHexDER('02',exponent_hex)
-      )
-      var der_b64 = Buffer.from(hexDER, 'hex').toString('base64')
-
-      var pem = '-----BEGIN RSA PUBLIC KEY-----\n'
-          + der_b64.match(/.{1,64}/g).join('\n')
-          + '\n-----END RSA PUBLIC KEY-----\n'
-      return pem
-    }
-
     var iss = oidc.issuer
     r(oidc.jwks_uri,
       (rsp) => {
@@ -151,11 +119,11 @@ Inizializzazione oauth2
             },
             ok: false
           }
-          if ( k.kty == 'RSA' ) {
-            k.pem = rsaPublicKeyPem(k.n,k.e)
+          // if ( k.kty == 'RSA' ) {
+            k.pem = jwkToPem(k)
             cs.auth[iss].keys[k.kid] = k
             klog.ok = true
-          }
+          // }
           csrv.log(klog)
         }
       },(err) => {
@@ -172,7 +140,6 @@ Inizializzazione oauth2
     })
     setTimeout(initoauth, 60*1000,r,c)
   }
-
 
   // Inizializzazione oauth2
   initoauth(this.request,csrv)
@@ -234,6 +201,7 @@ HttpDispatcher.prototype.auth = function(req, res) {
         if ( alg != 'none' && algo.verify(dati, firma, key.pem) ) {
           req.user = JSON.parse(JSON.stringify(user))
         }
+        console.log(user.header.kid)
       } catch(e) {
         req.cfg.log({
           reqid: req.reqid,
