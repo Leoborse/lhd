@@ -251,62 +251,74 @@ HttpDispatcher.prototype.on = function(method, args) {
 HttpDispatcher.prototype.onHead = function() {
   const args = Array.from(arguments)
   this.on('head', args)
+  return this
 }
 
 HttpDispatcher.prototype.onGet = function() {
   const args = Array.from(arguments)
   this.on('get', args)
+  return this
 }
 
 HttpDispatcher.prototype.onPost = function() {
   const args = Array.from(arguments)
   this.on('post', args)
+  return this
 }
 
 HttpDispatcher.prototype.onOptions = function() {
   const args = Array.from(arguments)
   this.on('options', args)
+  return this
 }
 
 HttpDispatcher.prototype.onPut = function() {
   const args = Array.from(arguments)
   this.on('put', args)
+  return this
 }
 
 HttpDispatcher.prototype.onDelete = function() {
   const args = Array.from(arguments)
   this.on('delete', args)
+  return this
 }
 
 HttpDispatcher.prototype.onPatch = function() {
   const args = Array.from(arguments)
   this.on('patch', args)
+  return this
 }
 
 HttpDispatcher.prototype.beforeFilter = function() {
   const args = Array.from(arguments)
   args[0] = new RegExp('^'+args[0])
   this.on('before', args)
+  return this
 }
 
 HttpDispatcher.prototype.afterFilter = function() {
   const args = Array.from(arguments)
   args[0] = new RegExp('^'+args[0])
   this.on('after', args)
+  return this
 }
 
 HttpDispatcher.prototype.setStatic = function(folder,dirname) {
   this.staticUrlPrefix = folder
   this.staticDirname = dirname
   this.onGet(new RegExp('^'+folder),this.staticListener.bind(this))
+  return this
 }
 
 HttpDispatcher.prototype.onError = function(cb) {
   this.errorListener = cb
+  return this
 }
 
 HttpDispatcher.prototype.onAuth = function(cb) {
   this.auth = cb
+  return this
 }
 
 HttpDispatcher.prototype.start = function(config) {
@@ -328,6 +340,7 @@ HttpDispatcher.prototype.start = function(config) {
       })
     }
   })
+  return this
 }
 
 HttpDispatcher.prototype.dispatch = function(req, res) {
