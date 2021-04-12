@@ -1,7 +1,7 @@
 {
   "name": "lhd",
   "version": "0.7.0",
-  "description": "(Another) Light HTTP(s) Dispatcher",
+  "description": "(Another) Light HTTP(s) Dispatcheri",
   "main": "src/lhd.js",
   "scripts": {
     "start": "node index.js"
